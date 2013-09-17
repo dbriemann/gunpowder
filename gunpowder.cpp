@@ -44,7 +44,7 @@ const U8 NEIGHBORS[LAST_FIELD+1][6] = {
     {3,4,7,9,14,15},                    //8
     {4,8,15,16,NONE,NONE},              //9
     {5,11,17,18,NONE,NONE},             //10
-    {5,6,10,12,18,18},                  //11
+    {5,6,10,12,18,19},                  //11
     {6,7,11,13,19,20},                  //12
     {7,12,14,20,21,22},                 //13
     {7,8,13,15,22,23},                  //14
@@ -143,7 +143,7 @@ const U8 NEIGHBORS[LAST_FIELD+1][6] = {
 };
 
 /*
- * Structs
+ * structs
  */
 struct Board {
 
@@ -151,9 +151,57 @@ struct Board {
 
 
 /*
+ * global functions
+ */
+
+void testNeighborhood() {
+    bool mutuality = false;
+    U8 neighbor = 0;
+    U8 reverse_neighbor = 0;
+
+    for(int field = FIRST_FIELD; field <= LAST_FIELD; field++) {
+        cout << "Field: " << field << endl;
+
+        for(int n = 0; n < MAX_NEIGHBORS; n++) {
+            neighbor = NEIGHBORS[field][n];
+            cout << "    Neighbor: " << (int)neighbor << endl;
+
+            if(neighbor != NONE) {
+                mutuality = false;
+                //test if neighborhood is mutual
+                for(int rn = 0; rn < MAX_NEIGHBORS; rn++) {
+                    reverse_neighbor = NEIGHBORS[neighbor][rn];
+                    cout << "        Reverse Neighbor: " << (int)reverse_neighbor << endl;
+
+                    if(reverse_neighbor != NONE) {
+                        //cout << (int) reverse_neighbor << endl;
+                        if(reverse_neighbor == field) {
+                            mutuality = true;
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                if(!mutuality) {
+                    cout << "MUTUALITY FAIL: " << field << " <-> " << (int)neighbor << endl;
+                    return;
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    cout << "TESTS PASSED" << endl;
+}
+
+/*
  * gunpowder main
  */
 int main() {
+    //testNeighborhood();
 
     return 0;
 }
