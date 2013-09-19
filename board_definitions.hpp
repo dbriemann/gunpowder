@@ -1,37 +1,15 @@
+#ifndef BOARD_DEFINITIONS_HPP
+#define BOARD_DEFINITIONS_HPP
 
-/*
- * Author: David Briemann
- *
- * Entry for the CodeCup 2014 coding contest.
- * A computer player for the game 'Poly-Y'.
- *
- * This is all packed into one file due to tournament/upload rules.
- *
- * Description:
- * Program has to play the game of 'Poly-Y' against other computer players.
- * Communication is done via stdin/-out and a manager program.
- *
- */
+#include "definitions.hpp"
 
-#include <iostream>
-#include <stdint.h>
-using namespace std;
-
-/*
- * global definitions
- */
 #define FIRST_FIELD 1
 #define LAST_FIELD 106
 #define MAX_NEIGHBORS 6
+#define EDGES 5
 #define NONE 0
-typedef uint8_t U8;
 
-
-/*
- * global variables
- */
-
-//array defines the neighborhood of every field, 0=NONE is not on the board
+//array defines the neighborhood of every field, 0==NONE is not on the board
 const U8 NEIGHBORS[LAST_FIELD+1][6] = {
     {NONE,NONE,NONE,NONE,NONE,NONE},    //0
     {2,3,4,NONE,NONE,NONE},             //1
@@ -142,17 +120,123 @@ const U8 NEIGHBORS[LAST_FIELD+1][6] = {
     {98,99,105,NONE,NONE,NONE}          //106
 };
 
-/*
- * structs
- */
-struct Board {
+//edge masks
+U8 EDGE_MASKS[EDGES+1] = {
+    NONE, 0x1, 0x2, 0x4, 0x8, 0x10
+};
 
+//which edge does a field belong to (0 == NONE)
+U8 FIELD_EDGE_RELATION[LAST_FIELD+1] = {
+    EDGE_MASKS[NONE],                   //0
+    EDGE_MASKS[1] | EDGE_MASKS[5],      //1
+    EDGE_MASKS[5],                      //2
+    EDGE_MASKS[NONE],                   //3
+    EDGE_MASKS[1],                      //4
+    EDGE_MASKS[5],                      //5
+    EDGE_MASKS[NONE],                   //6
+    EDGE_MASKS[NONE],                   //7
+    EDGE_MASKS[NONE],                   //8
+    EDGE_MASKS[1],                      //9
+    EDGE_MASKS[5],                      //10
+    EDGE_MASKS[NONE],                   //11
+    EDGE_MASKS[NONE],                   //12
+    EDGE_MASKS[NONE],                   //13
+    EDGE_MASKS[NONE],                   //14
+    EDGE_MASKS[NONE],                   //15
+    EDGE_MASKS[1],                      //16
+    EDGE_MASKS[5],                      //17
+    EDGE_MASKS[NONE],                   //18
+    EDGE_MASKS[NONE],                   //19
+    EDGE_MASKS[NONE],                   //20
+    EDGE_MASKS[NONE],                   //21
+    EDGE_MASKS[NONE],                   //22
+    EDGE_MASKS[NONE],                   //23
+    EDGE_MASKS[NONE],                   //24
+    EDGE_MASKS[1],                      //25
+    EDGE_MASKS[5],                      //26
+    EDGE_MASKS[NONE],                   //27
+    EDGE_MASKS[NONE],                   //28
+    EDGE_MASKS[NONE],                   //29
+    EDGE_MASKS[NONE],                   //30
+    EDGE_MASKS[NONE],                   //31
+    EDGE_MASKS[NONE],                   //32
+    EDGE_MASKS[NONE],                   //33
+    EDGE_MASKS[NONE],                   //34
+    EDGE_MASKS[NONE],                   //35
+    EDGE_MASKS[1],                      //36
+    EDGE_MASKS[5] | EDGE_MASKS[4],      //37
+    EDGE_MASKS[NONE],                   //38
+    EDGE_MASKS[NONE],                   //39
+    EDGE_MASKS[NONE],                   //40
+    EDGE_MASKS[NONE],                   //41
+    EDGE_MASKS[NONE],                   //42
+    EDGE_MASKS[NONE],                   //43 //CENTER
+    EDGE_MASKS[NONE],                   //44
+    EDGE_MASKS[NONE],                   //45
+    EDGE_MASKS[NONE],                   //46
+    EDGE_MASKS[NONE],                   //47
+    EDGE_MASKS[NONE],                   //48
+    EDGE_MASKS[2] | EDGE_MASKS[1],      //49
+    EDGE_MASKS[4],                      //50
+    EDGE_MASKS[NONE],                   //51
+    EDGE_MASKS[NONE],                   //52
+    EDGE_MASKS[NONE],                   //53
+    EDGE_MASKS[NONE],                   //54
+    EDGE_MASKS[NONE],                   //55
+    EDGE_MASKS[NONE],                   //56
+    EDGE_MASKS[NONE],                   //57
+    EDGE_MASKS[NONE],                   //58
+    EDGE_MASKS[NONE],                   //59
+    EDGE_MASKS[NONE],                   //60
+    EDGE_MASKS[2],                      //61
+    EDGE_MASKS[4],                      //62
+    EDGE_MASKS[NONE],                   //63
+    EDGE_MASKS[NONE],                   //64
+    EDGE_MASKS[NONE],                   //65
+    EDGE_MASKS[NONE],                   //66
+    EDGE_MASKS[NONE],                   //67
+    EDGE_MASKS[NONE],                   //68
+    EDGE_MASKS[NONE],                   //69
+    EDGE_MASKS[NONE],                   //70
+    EDGE_MASKS[NONE],                   //71
+    EDGE_MASKS[2],                      //72
+    EDGE_MASKS[4],                      //73
+    EDGE_MASKS[NONE],                   //74
+    EDGE_MASKS[NONE],                   //75
+    EDGE_MASKS[NONE],                   //76
+    EDGE_MASKS[NONE],                   //77
+    EDGE_MASKS[NONE],                   //78
+    EDGE_MASKS[NONE],                   //79
+    EDGE_MASKS[NONE],                   //80
+    EDGE_MASKS[NONE],                   //81
+    EDGE_MASKS[2],                      //82
+    EDGE_MASKS[4],                      //83
+    EDGE_MASKS[NONE],                   //84
+    EDGE_MASKS[NONE],                   //85
+    EDGE_MASKS[NONE],                   //86
+    EDGE_MASKS[NONE],                   //87
+    EDGE_MASKS[NONE],                   //88
+    EDGE_MASKS[NONE],                   //89
+    EDGE_MASKS[NONE],                   //90
+    EDGE_MASKS[2],                      //91
+    EDGE_MASKS[4],                      //92
+    EDGE_MASKS[NONE],                   //93
+    EDGE_MASKS[NONE],                   //94
+    EDGE_MASKS[NONE],                   //95
+    EDGE_MASKS[NONE],                   //96
+    EDGE_MASKS[NONE],                   //97
+    EDGE_MASKS[NONE],                   //98
+    EDGE_MASKS[2],                      //99
+    EDGE_MASKS[4] | EDGE_MASKS[3],      //100
+    EDGE_MASKS[3],                      //101
+    EDGE_MASKS[3],                      //102
+    EDGE_MASKS[3],                      //103
+    EDGE_MASKS[3],                      //104
+    EDGE_MASKS[3],                      //105
+    EDGE_MASKS[3] | EDGE_MASKS[2]       //106
 };
 
 
-/*
- * global functions
- */
 
 void testNeighborhood() {
     bool mutuality = false;
@@ -197,11 +281,4 @@ void testNeighborhood() {
     cout << "TESTS PASSED" << endl;
 }
 
-/*
- * gunpowder main
- */
-int main() {
-    //testNeighborhood();
-
-    return 0;
-}
+#endif // BOARD_DEFINITIONS_HPP
