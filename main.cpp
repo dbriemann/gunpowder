@@ -21,7 +21,6 @@ using namespace std;
 //---REPLACE-BEGIN---
 #include "timer.hpp"
 #include "definitions.hpp"
-#include "board_definitions.hpp"
 #include "Board.hpp"
 //---REPLACE-END---
 
