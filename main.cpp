@@ -29,7 +29,13 @@ using namespace std;
  * gunpowder main
  */
 int main() {
-    //testNeighborhood();
+
+    Board origin_board;
+    Board sim_board;
+
+    while(true) {
+
+    }
 
     return 0;
 }
