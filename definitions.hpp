@@ -1,11 +1,14 @@
 #ifndef DEFINITIONS_HPP
 #define DEFINITIONS_HPP
 
+#include <iostream>
 #include <stdint.h>
+using namespace std;
 
 /*
  * global definitions
  */
+typedef uint32_t U32;
 typedef uint8_t U8;
 typedef int8_t I8;
 //typedef uint32_t U32;
@@ -20,6 +23,11 @@ typedef int8_t I8;
 #define BLACK 1
 #define EMPTY 2
 #define FLIP(x) (((x)+1) & 1)
+#define LOGERR(msg) (std::cerr << (msg) << std::endl)
+
+
+const U8 GROUPS_START[2] = {0, 107};
+const U8 GROUPS_END[2] = {106, 213};
 
 //lookup the score of a group by its side mask
 //that is the number of corners controlled by a group

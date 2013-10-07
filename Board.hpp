@@ -7,85 +7,68 @@
 using namespace std;
 
 #include "definitions.hpp"
-#include "Group.hpp"
 
 struct Board {
     U8 move_nr;
     U8 to_play;
-    U8 score[2];
-
+    U8 scores[2];
     U8 fields[LAST_FIELD+1];
     U8 field_to_group[LAST_FIELD+1];
-    vector<Group> groups[2];
+    U8 group_masks[2*(LAST_FIELD+1)];
+
     vector<U8> possible_moves;
 
     Board();
     Board & operator=(const Board &other);
 
     void makeMove(U8 idx);
+    void setScore();
 };
 
 Board::Board() {
+    LOGERR("Init Board");
+    scores[WHITE] = scores[BLACK] = 0;
     move_nr = 0;
     to_play = WHITE;
-    groups[WHITE] = vector<Group>();
-    groups[BLACK] = vector<Group>();
-    score[WHITE] = 0;
-    score[BLACK] = 0;
     for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
         possible_moves.push_back(i);
         fields[i] = EMPTY;
         field_to_group[i] = NONE;
+        group_masks[i] = NONE;
     }
     fields[0] = EMPTY;
     field_to_group[0] = NONE;
+    group_masks[0] = NONE;
 }
 
 Board & Board::operator=(const Board &other) {
-
+    LOGERR("Copy Board");
+    //copy static memory blocks together
+    memcpy(this, &other, (1 + 1 + 2 + (4*(LAST_FIELD+1)) ) * sizeof(U8));
+    //copy dynamic memory stuff
+    possible_moves = other.possible_moves;
 
     return *this;
 }
 
-void Board::makeMove(U8 idx) {
-    bool is_new_group = true;
+void Board::setScore() {
+    LOGERR("Set Score");
+    //U8 running_mask = NONE;
+    //U8 cur_mask = NONE;
+    U8 mask = NONE;
+    U8 score = 0;
 
-    //1. add stone to fields array
-    fields[idx] = to_play;
-
-    //3. check if neighbors of the same color exist
-    for(int i = 0; i < 6 && NEIGHBORS[idx][i] != NONE; i++) {
-        U8 neighbor_idx = NEIGHBORS[idx][i];
-        if(fields[neighbor_idx] == to_play) {
-            if(is_new_group) {
-                groups[to_play][field_to_group[neighbor_idx]].addMember(idx);
-            } else {
-                groups[to_play][field_to_group[neighbor_idx]].merge(groups[to_play][field_to_group[idx]]);
-            }
-            field_to_group[idx] = field_to_group[neighbor_idx];
-            is_new_group = false;
-        }
+    //sets score for current player(to_play)
+    for(int i = GROUPS_START[to_play]; i < GROUPS_END[to_play]; i++) {
+        mask = group_masks[i];
+        //cur_mask |= mask;
+        //if(cur_mask != running_mask) {
+            //ignore duplicate masks
+        score += SCORE_LOOKUP[mask];
+            //running_mask = cur_mask;
+        //}
     }
-
-    if(is_new_group) {
-        groups[to_play].push_back(Group());
-        groups[to_play].back().addMember(idx);
-        field_to_group[idx] = groups[to_play].size() - 1;
-    }
-
-
-    //remove from possible moves
-    //TODO. SUX
-    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
-        if(*iter == idx) {
-            possible_moves.erase(iter);
-            break;
-        }
-    }
-    //switch color
-    to_play = FLIP(to_play);
-    //
-    move_nr++;
 }
+
 
 #endif // BOARD_HPP

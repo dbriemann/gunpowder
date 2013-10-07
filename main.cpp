@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <ctime>
 using namespace std;
 
 //the following includes will be replaced by the actual code
@@ -29,13 +30,17 @@ using namespace std;
  * gunpowder main
  */
 int main() {
+    srand(time(NULL));
 
     Board origin_board;
     Board sim_board;
 
     while(true) {
-
+        //reset sim board to origin state
+        sim_board = origin_board;
+        U8 moves = sim_board.possible_moves.size();
     }
+    cout << endl;
 
     return 0;
 }
