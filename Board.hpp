@@ -35,10 +35,12 @@ Board::Board() {
         fields[i] = EMPTY;
         field_to_group[i] = NONE;
         group_masks[i] = NONE;
+        group_masks[i+GROUPS_START[BLACK]] = NONE;
     }
     fields[0] = EMPTY;
     field_to_group[0] = NONE;
     group_masks[0] = NONE;
+    group_masks[GROUPS_START[BLACK]] = NONE;
 }
 
 Board & Board::operator=(const Board &other) {
@@ -49,6 +51,70 @@ Board & Board::operator=(const Board &other) {
     possible_moves = other.possible_moves;
 
     return *this;
+}
+
+void Board::makeMove(U8 idx) {
+    LOGERR("Make Move");
+    //1. add stone to board
+    fields[idx] = to_play;
+    field_to_group[idx] = idx;
+    //edge mask for the current stone is just a lookup
+    group_masks[GROUPS_START[to_play] + idx] = FIELD_EDGE_RELATION[idx];
+
+    //locals
+    bool merge_occured = false;
+    U8 neighbor_idx = NONE;
+    U8 neighbor_val = EMPTY;
+    U8 ni = 0;
+
+    //2. check neighbor fields
+    for(ni = 0, neighbor_idx = NEIGHBORS[idx][ni];
+        (ni < 6) && (neighbor_idx != NONE);
+        neighbor_idx = NEIGHBORS[idx][++ni]) {
+
+        //if neighbor has the same color
+        neighbor_val = fields[neighbor_idx];
+        if(neighbor_val == to_play) {
+            if(merge_occured) {
+                //merge a group with another group
+                //the group with the lower field id stays
+                //this is arbitrarily chosen
+                //TODO -- improvements? (merge smaller groups into larger groups..?)
+                U8 group_to_stay = min(field_to_group[idx], field_to_group[neighbor_idx]);
+                U8 group_to_go = max(field_to_group[idx], field_to_group[neighbor_idx]);
+
+                //adjust masks
+                group_masks[GROUPS_START[to_play] + group_to_stay] |= group_masks[GROUPS_START[to_play] + group_to_go];
+                group_masks[GROUPS_START[to_play] + group_to_go] = NONE;
+
+                //iterate over all group ids
+                //and merge them together
+                for(int gi = FIRST_FIELD; gi <= LAST_FIELD; gi++) {
+                    if(field_to_group[gi] == group_to_go) {
+                        field_to_group[gi] = group_to_stay;
+                    }
+                }
+            } else {
+                //merge the newly placed stone's group into the existing larger group
+                field_to_group[idx] = field_to_group[neighbor_idx];
+                //or the edge mask with the existing group
+                group_masks[GROUPS_START[to_play] + neighbor_idx] |= group_masks[GROUPS_START[to_play] + idx];
+                //remove the old mask
+                group_masks[GROUPS_START[to_play] + idx] = NONE;
+            }
+
+            merge_occured = true; //future merges will be group merges
+        }
+    }
+    //if no merge occured --> everything has been done before the loop
+
+    setScore();
+
+    //switch color
+    to_play = FLIP(to_play);
+
+    //
+    move_nr++;
 }
 
 void Board::setScore() {
