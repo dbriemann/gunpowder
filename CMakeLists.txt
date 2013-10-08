@@ -8,4 +8,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x -O2 -g -lm")
 add_custom_target(Headers SOURCES Timer.hpp definitions.hpp Engine.hpp Board.hpp)
 
 add_executable(${PROJECT_NAME} main.cpp)
+add_executable(build_statistics build_statistics.cpp)
 

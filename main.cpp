@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <ctime>
+#include <string>
 using namespace std;
 
 //the following includes will be replaced by the actual code
@@ -33,57 +34,59 @@ using namespace std;
 int main() {
     srand(time(NULL));
 
-    Board origin_board;
-    Board sim_board;
+    Engine game_engine;
+    WallTimer wtimer;
+    double used_time = 0.0;
 
-    int64_t results[LAST_FIELD+1] = {0};
-    U64 games_played = 0ULL;
-    U8 score = 0;
+    string in_command = "";
+    int last_move = 0;
+    int next_move = 0;
 
+    //TODO DEBUG
+    cerr << "R gunpowder" << endl;
+    cerr.flush();
+
+    //process commands
     while(true) {
-        score = 0;
+        cin >> in_command;
+        wtimer.start();
 
-        //for every possible first move
-        for(int pfm = FIRST_FIELD; pfm <= LAST_FIELD; pfm++) {
-            sim_board = origin_board;
-            sim_board.makeMove(pfm);
+        if(in_command == "Start") {
+            //the first command received decides which color we play
+            //we are white and begin the game
+            game_engine.color = WHITE;
 
-            //run random simulation and store result
-            while(true) {
-                U8 moves = sim_board.possible_moves.size();
-                if(moves == 0) {
-                    cerr << "BAAAAD" << endl;
-                    return 1;
-                }
+            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
+            game_engine.permanentMove(next_move);
 
-                U8 rand_move_idx = rand() % moves;
-                U8 rand_move = sim_board.possible_moves[rand_move_idx];
-                score = sim_board.makeMove(rand_move);
-                if(score >= 3) {
-                    if(sim_board.to_play == WHITE) {
-                        //black wins
-                        results[pfm] -= 1;
-                    } else {
-                        results[pfm] += 1;
-                    }
+            used_time += wtimer.get_elapsed();
 
-                    break;
-                }
+            cout << next_move << endl;
+            cout.flush();
+        } else if(in_command == "Quit") {
+            //exit program
+            break;
+        } else {
+            //we receive the last move played
+            last_move = atoi(in_command.c_str());
+
+            //last move may be color switch
+            if(game_engine.board.move_nr == 1 && last_move == -1) {
+                game_engine.colorFlip();
+            } else {
+                game_engine.permanentMove(last_move);
             }
-        }
 
-        games_played++;
+            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
+            game_engine.permanentMove(next_move);
 
-        if(games_played % 1000 == 0) {
-            cerr << "# Results for " << games_played << " games: " << endl;
-            for(auto v : results) {
-                cerr << v << ", ";
-            }
-            cerr << endl;
+            used_time += wtimer.get_elapsed();
+
+            cout << next_move << endl;
+            cout.flush();
         }
+        WallTimer::print(used_time);
     }
-
-    cout << endl;
 
     return 0;
 }

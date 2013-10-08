@@ -10,6 +10,7 @@ using namespace std;
  */
 typedef uint64_t U64;
 typedef uint32_t U32;
+typedef int32_t I32;
 typedef uint8_t U8;
 typedef int8_t I8;
 //typedef uint32_t U32;
@@ -26,9 +27,12 @@ typedef int8_t I8;
 #define WHITE_WIN 1
 #define BLACK_WIN -1
 
+#define TOTAL_MAX_TIME 30.0
+
 #define FLIP(x) (((x)+1) & 1)
 #define LOGERR(msg) (std::cerr << (msg) << std::endl)
 
+const I8 COLOR_SCORE_MULTIPLIER[2] = {1, -1};
 
 const U8 GROUPS_START[2] = {0, 107};
 const U8 GROUPS_END[2] = {106, 213};
