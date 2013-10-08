@@ -11,7 +11,7 @@ using namespace std;
 struct Board {
     U8 move_nr;
     U8 to_play;
-    U8 scores[2];
+    //U8 scores[2];
     U8 fields[LAST_FIELD+1];
     U8 field_to_group[LAST_FIELD+1];
     U8 group_masks[2*(LAST_FIELD+1)];
@@ -21,13 +21,12 @@ struct Board {
     Board();
     Board & operator=(const Board &other);
 
-    void makeMove(U8 idx);
-    void setScore();
+    I8 makeMove(U8 idx);
+    inline U8 getScore();
+    inline I8 getWinner();
 };
 
 Board::Board() {
-    LOGERR("Init Board");
-    scores[WHITE] = scores[BLACK] = 0;
     move_nr = 0;
     to_play = WHITE;
     for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
@@ -44,17 +43,16 @@ Board::Board() {
 }
 
 Board & Board::operator=(const Board &other) {
-    LOGERR("Copy Board");
     //copy static memory blocks together
-    memcpy(this, &other, (1 + 1 + 2 + (4*(LAST_FIELD+1)) ) * sizeof(U8));
+    memcpy(this, &other, (1 + 1 + (4*(LAST_FIELD+1)) ) * sizeof(U8));
     //copy dynamic memory stuff
     possible_moves = other.possible_moves;
 
     return *this;
 }
 
-void Board::makeMove(U8 idx) {
-    LOGERR("Make Move");
+I8 Board::makeMove(U8 idx) {
+
     //1. add stone to board
     fields[idx] = to_play;
     field_to_group[idx] = idx;
@@ -82,6 +80,10 @@ void Board::makeMove(U8 idx) {
                 //TODO -- improvements? (merge smaller groups into larger groups..?)
                 U8 group_to_stay = min(field_to_group[idx], field_to_group[neighbor_idx]);
                 U8 group_to_go = max(field_to_group[idx], field_to_group[neighbor_idx]);
+                if(group_to_stay == group_to_go) {
+                    //circular group
+                    continue;
+                }
 
                 //adjust masks
                 group_masks[GROUPS_START[to_play] + group_to_stay] |= group_masks[GROUPS_START[to_play] + group_to_go];
@@ -94,11 +96,12 @@ void Board::makeMove(U8 idx) {
                         field_to_group[gi] = group_to_stay;
                     }
                 }
+
             } else {
                 //merge the newly placed stone's group into the existing larger group
                 field_to_group[idx] = field_to_group[neighbor_idx];
                 //or the edge mask with the existing group
-                group_masks[GROUPS_START[to_play] + neighbor_idx] |= group_masks[GROUPS_START[to_play] + idx];
+                group_masks[GROUPS_START[to_play] + field_to_group[neighbor_idx]] |= group_masks[GROUPS_START[to_play] + idx];
                 //remove the old mask
                 group_masks[GROUPS_START[to_play] + idx] = NONE;
             }
@@ -108,32 +111,50 @@ void Board::makeMove(U8 idx) {
     }
     //if no merge occured --> everything has been done before the loop
 
-    setScore();
+
+    I8 win = getWinner();
+
+    //remove possible move from vector
+    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
+        if(*iter == idx) {
+            possible_moves.erase(iter);
+            break;
+        }
+    }
 
     //switch color
     to_play = FLIP(to_play);
 
     //
     move_nr++;
+
+    return win;
 }
 
-void Board::setScore() {
-    LOGERR("Set Score");
-    //U8 running_mask = NONE;
-    //U8 cur_mask = NONE;
+inline
+U8 Board::getScore() {
     U8 mask = NONE;
     U8 score = 0;
 
     //sets score for current player(to_play)
-    for(int i = GROUPS_START[to_play]; i < GROUPS_END[to_play]; i++) {
+    for(int i = GROUPS_START[to_play]; i <= GROUPS_END[to_play]; i++) {
         mask = group_masks[i];
-        //cur_mask |= mask;
-        //if(cur_mask != running_mask) {
-            //ignore duplicate masks
         score += SCORE_LOOKUP[mask];
-            //running_mask = cur_mask;
-        //}
     }
+
+    return score;
+}
+
+inline
+I8 Board::getWinner() {
+    if(getScore() >= 3) {
+        if(to_play == WHITE) {
+            return WHITE_WIN;
+        } else {
+            return BLACK_WIN;
+        }
+    }
+    return NONE;
 }
 
 

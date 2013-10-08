@@ -8,6 +8,7 @@ using namespace std;
 /*
  * global definitions
  */
+typedef uint64_t U64;
 typedef uint32_t U32;
 typedef uint8_t U8;
 typedef int8_t I8;
@@ -22,6 +23,9 @@ typedef int8_t I8;
 #define WHITE 0
 #define BLACK 1
 #define EMPTY 2
+#define WHITE_WIN 1
+#define BLACK_WIN -1
+
 #define FLIP(x) (((x)+1) & 1)
 #define LOGERR(msg) (std::cerr << (msg) << std::endl)
 
@@ -149,11 +153,11 @@ const U8 NEIGHBORS[LAST_FIELD+1][6] = {
 };
 
 //edge masks
-#define EDGE_MASK1 0x1
-#define EDGE_MASK2 0x2
-#define EDGE_MASK3 0x4
-#define EDGE_MASK4 0x8
-#define EDGE_MASK5 0x10
+#define EDGE_MASK1 1
+#define EDGE_MASK2 2
+#define EDGE_MASK3 4
+#define EDGE_MASK4 8
+#define EDGE_MASK5 16
 /*
 U8 EDGE_MASKS[EDGES+1] = {
     NONE, EDGE_MASK1, EDGE_MASK2, EDGE_MASK3, EDGE_MASK4, EDGE_MASK5

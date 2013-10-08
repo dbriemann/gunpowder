@@ -20,9 +20,10 @@ using namespace std;
 //with the help of a script, because tournament rules allow
 //only one single file as upload.
 //---REPLACE-BEGIN---
-#include "timer.hpp"
+#include "Timer.hpp"
 #include "definitions.hpp"
 #include "Board.hpp"
+#include "Engine.hpp"
 //---REPLACE-END---
 
 
@@ -35,11 +36,53 @@ int main() {
     Board origin_board;
     Board sim_board;
 
+    int64_t results[LAST_FIELD+1] = {0};
+    U64 games_played = 0ULL;
+    U8 score = 0;
+
     while(true) {
-        //reset sim board to origin state
-        sim_board = origin_board;
-        U8 moves = sim_board.possible_moves.size();
+        score = 0;
+
+        //for every possible first move
+        for(int pfm = FIRST_FIELD; pfm <= LAST_FIELD; pfm++) {
+            sim_board = origin_board;
+            sim_board.makeMove(pfm);
+
+            //run random simulation and store result
+            while(true) {
+                U8 moves = sim_board.possible_moves.size();
+                if(moves == 0) {
+                    cerr << "BAAAAD" << endl;
+                    return 1;
+                }
+
+                U8 rand_move_idx = rand() % moves;
+                U8 rand_move = sim_board.possible_moves[rand_move_idx];
+                score = sim_board.makeMove(rand_move);
+                if(score >= 3) {
+                    if(sim_board.to_play == WHITE) {
+                        //black wins
+                        results[pfm] -= 1;
+                    } else {
+                        results[pfm] += 1;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        games_played++;
+
+        if(games_played % 1000 == 0) {
+            cerr << "# Results for " << games_played << " games: " << endl;
+            for(auto v : results) {
+                cerr << v << ", ";
+            }
+            cerr << endl;
+        }
     }
+
     cout << endl;
 
     return 0;
