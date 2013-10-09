@@ -9,7 +9,7 @@ using namespace std;
 #include "definitions.hpp"
 
 struct Board {
-    U8 move_nr;
+    U8 next_move;
     U8 to_play;
     //U8 scores[2];
     U8 fields[LAST_FIELD+1];
@@ -27,7 +27,7 @@ struct Board {
 };
 
 Board::Board() {
-    move_nr = 0;
+    next_move = 1;
     to_play = WHITE;
     for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
         possible_moves.push_back(i);
@@ -126,7 +126,7 @@ I8 Board::makeMove(U8 idx) {
     to_play = FLIP(to_play);
 
     //
-    move_nr++;
+    next_move++;
 
     return win;
 }

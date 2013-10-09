@@ -15,8 +15,11 @@ typedef uint8_t U8;
 typedef int8_t I8;
 //typedef uint32_t U32;
 
+#define VERSION_STR "v0.1"
+
 #define FIRST_FIELD 1
 #define LAST_FIELD 106
+#define FLIP_MOVE 107
 #define MAX_NEIGHBORS 6
 #define EDGES 5
 #define NONE 0
@@ -28,6 +31,7 @@ typedef int8_t I8;
 #define BLACK_WIN -1
 
 #define TOTAL_MAX_TIME 30.0
+#define LOST_TIME_MALUS 0.2
 
 #define FLIP(x) (((x)+1) & 1)
 #define LOGERR(msg) (std::cerr << (msg) << std::endl)

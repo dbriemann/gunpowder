@@ -43,13 +43,15 @@ int main() {
     int next_move = 0;
 
     //TODO DEBUG
-    cerr << "R gunpowder" << endl;
+    cerr << "R gunpowder" << VERSION_STR << endl;
     cerr.flush();
 
     //process commands
     while(true) {
         cin >> in_command;
         wtimer.start();
+
+        used_time += LOST_TIME_MALUS;
 
         if(in_command == "Start") {
             //the first command received decides which color we play
@@ -71,7 +73,7 @@ int main() {
             last_move = atoi(in_command.c_str());
 
             //last move may be color switch
-            if(game_engine.board.move_nr == 1 && last_move == -1) {
+            if(game_engine.board.next_move == 2 && last_move == -1) {
                 game_engine.colorFlip();
             } else {
                 game_engine.permanentMove(last_move);
@@ -79,13 +81,21 @@ int main() {
 
             next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
             game_engine.permanentMove(next_move);
-
             used_time += wtimer.get_elapsed();
 
-            cout << next_move << endl;
+            if(next_move == FLIP_MOVE) {
+                cerr << "*** MAKE FLIPPER..." << endl;
+                cout << "-1" << endl;
+            } else {
+                cerr << "NO FLIP..." << endl;
+                cout << next_move << endl;
+            }
+
             cout.flush();
         }
+
         WallTimer::print(used_time);
+        cerr << endl;
     }
 
     return 0;
