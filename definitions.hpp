@@ -15,7 +15,7 @@ typedef uint8_t U8;
 typedef int8_t I8;
 //typedef uint32_t U32;
 
-#define VERSION_STR "v0.1"
+#define VERSION_STR "v0.2"
 
 #define FIRST_FIELD 1
 #define LAST_FIELD 106

@@ -98,15 +98,15 @@ U8 Engine::getBestMove(double remaining_time) {
         }
 
         //standard result adjustment
-        results[first_move] += win;
+//        results[first_move] += win;
 
         //history heuristic result adjustment
-//        for(int i = board.next_move; i < sim_board.next_move; i+=2) {
-//            results[move_history[i]] += win;
-//        }
-//        for(int i = board.next_move + 1; i < sim_board.next_move; i+=2) {
-//            results[move_history[i]] -= win;
-//        }
+        for(int i = board.next_move; i < sim_board.next_move; i+=2) {
+            results[move_history[i]] += win;
+        }
+        for(int i = board.next_move + 1; i < sim_board.next_move; i+=2) {
+            results[move_history[i]] -= win;
+        }
 
         //minimum_game_length = min(minimum_game_length, sim_board.next_move);
         simulations++;
