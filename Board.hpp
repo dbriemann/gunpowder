@@ -52,7 +52,6 @@ Board & Board::operator=(const Board &other) {
 }
 
 I8 Board::makeMove(U8 idx) {
-
     //1. add stone to board
     fields[idx] = to_play;
     field_to_group[idx] = idx;

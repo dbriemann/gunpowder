@@ -55,8 +55,10 @@ U8 Engine::getBestMove(double remaining_time) {
     cerr << "Next Move: " << (int)board.next_move << endl;
     I32 results[LAST_FIELD+2] = {0};
     U8 move_history[LAST_FIELD+2] = {0};
+    //U8 last_good_replies[LAST_FIELD+2] = {0};
     U8 first_move;
     U8 rand_move;
+    //U8 last_move;
     I8 win;
     U8 best_move = board.possible_moves[0];
     //U8 minimum_game_length = 20;
@@ -79,10 +81,10 @@ U8 Engine::getBestMove(double remaining_time) {
         if(sim_board.next_move == 2) {
             first_move = getRandomMoveWithFlip();
             best_move = FLIP_MOVE;
-        } else {
+        } else {            
             first_move = getRandomMove();
         }
-
+        //last_move = first_move;
         move_history[sim_board.next_move] = first_move;
         if(first_move == FLIP_MOVE) {
             simFlip();
@@ -92,9 +94,17 @@ U8 Engine::getBestMove(double remaining_time) {
 
         //run simulation until game is finished
         while(win == NONE) {
-            rand_move = getRandomMove();
+//            U8 lgr = last_good_replies[last_move];
+//            if(lgr != NONE && sim_board.fields[lgr] == EMPTY) {
+//                //check if there is a last good reply
+//                rand_move = lgr;
+//            } else {
+//                //else make random move
+                rand_move = getRandomMove();
+//            }
             move_history[sim_board.next_move] = rand_move;
-            win = sim_board.makeMove(rand_move);            
+            win = sim_board.makeMove(rand_move);
+//            last_move = rand_move;
         }
 
         //standard result adjustment
@@ -107,6 +117,18 @@ U8 Engine::getBestMove(double remaining_time) {
         for(int i = board.next_move + 1; i < sim_board.next_move; i+=2) {
             results[move_history[i]] -= win;
         }
+
+//        //last move was always by the winner
+//        for(int i = sim_board.next_move-1; i > 1; i-=2) {
+//            //updating last good replies
+//            last_good_replies[move_history[i-1]] = move_history[i];
+//        }
+//        //remove loser's moves from last good replies
+//        for(int i = sim_board.next_move-2; i > 1; i-=2) {
+//            if(last_good_replies[move_history[i-1]] == move_history[i]) {
+//                last_good_replies[move_history[i-1]] = NONE;
+//            }
+//        }
 
         //minimum_game_length = min(minimum_game_length, sim_board.next_move);
         simulations++;
