@@ -152,9 +152,13 @@ int main() {
     I8 win = 0;
     U8 move_history[LAST_FIELD+1] = {0};
 
+    //make custom move(s)
+    //origin_board.makeMove(43);
+
     while(true) {
         //for every possible first move
-        for(int pfm = FIRST_FIELD; pfm <= LAST_FIELD; pfm++) {
+        for(U8 pfm : origin_board.possible_moves)  {
+//        for(int pfm = FIRST_FIELD; pfm <= LAST_FIELD; pfm++) {
             win = NONE;
             sim_board = origin_board;
 
