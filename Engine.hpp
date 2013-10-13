@@ -52,22 +52,19 @@ void Engine::simFlip() {
 inline
 U8 Engine::getBestMove(double remaining_time) {
     wtimer.start();
-    cerr << "Next Move: " << (int)board.next_move << endl;
-    I32 results[LAST_FIELD+2] = {0};
-    U8 move_history[LAST_FIELD+2] = {0};
-    //U8 last_good_replies[LAST_FIELD+2] = {0};
-    U8 first_move;
+
+    cerr << endl << "NEXT MOVE:   " << (int)board.next_move << endl;
+
+    I32 results[LAST_FIELD+1] = {0};
+    U32 visits[LAST_FIELD+1] = {0};
+    U8 move_history[LAST_FIELD+1] = {0};
     U8 rand_move;
-    //U8 last_move;
     I8 win;
     U8 best_move = board.possible_moves[0];
-    //U8 minimum_game_length = 20;
+    double best_score = 0;
     U64 simulations = 0ULL;
 
-    //U8 rest_length = max(minimum_game_length - board.move_nr + 1, 5);
-    //double this_turn_time = remaining_time / (double)(rest_length);
-    double this_turn_time = remaining_time / 20.0;//;(double)max(5, 60-board.move_nr);
-    //cerr << "Minimum rest length: " << (int)(rest_length) << endl;
+    double this_turn_time = remaining_time / 10.0;
     cerr << "Remaining time: " << this_turn_time << " sec." << endl;
 
 
@@ -78,33 +75,11 @@ U8 Engine::getBestMove(double remaining_time) {
         sim_board = board;
         sim_color = color;
 
-        if(sim_board.next_move == 2) {
-            first_move = getRandomMoveWithFlip();
-            best_move = FLIP_MOVE;
-        } else {            
-            first_move = getRandomMove();
-        }
-        //last_move = first_move;
-        move_history[sim_board.next_move] = first_move;
-        if(first_move == FLIP_MOVE) {
-            simFlip();
-        } else {
-            win = sim_board.makeMove(first_move);
-        }
-
         //run simulation until game is finished
         while(win == NONE) {
-//            U8 lgr = last_good_replies[last_move];
-//            if(lgr != NONE && sim_board.fields[lgr] == EMPTY) {
-//                //check if there is a last good reply
-//                rand_move = lgr;
-//            } else {
-//                //else make random move
-                rand_move = getRandomMove();
-//            }
+            rand_move = getRandomMove();
             move_history[sim_board.next_move] = rand_move;
             win = sim_board.makeMove(rand_move);
-//            last_move = rand_move;
         }
 
         //standard result adjustment
@@ -113,42 +88,35 @@ U8 Engine::getBestMove(double remaining_time) {
         //history heuristic result adjustment
         for(int i = board.next_move; i < sim_board.next_move; i+=2) {
             results[move_history[i]] += win;
+            visits[move_history[i]]++;
         }
-        for(int i = board.next_move + 1; i < sim_board.next_move; i+=2) {
-            results[move_history[i]] -= win;
-        }
-
-//        //last move was always by the winner
-//        for(int i = sim_board.next_move-1; i > 1; i-=2) {
-//            //updating last good replies
-//            last_good_replies[move_history[i-1]] = move_history[i];
-//        }
-//        //remove loser's moves from last good replies
-//        for(int i = sim_board.next_move-2; i > 1; i-=2) {
-//            if(last_good_replies[move_history[i-1]] == move_history[i]) {
-//                last_good_replies[move_history[i-1]] = NONE;
-//            }
+//        for(int i = board.next_move + 1; i < sim_board.next_move; i+=2) {
+//            results[move_history[i]] -= win;
+//            visits[move_history[i]]++;
 //        }
 
         //minimum_game_length = min(minimum_game_length, sim_board.next_move);
         simulations++;
     }
 
-    I32 best_score = results[best_move] * COLOR_SCORE_MULTIPLIER[color];
-    //find move with max rank
+    vector< pair<U8, double> > final_scores;
+
     for(U8 m : board.possible_moves) {
-        I32 scr = results[m] * COLOR_SCORE_MULTIPLIER[color];
-        if(scr > best_score) {
-            best_score = scr;
-            best_move = m;
-        }
+        double curscore = (double)results[m] * COLOR_SCORE_MULTIPLIER[color];
+        double perc = (((double)visits[m] - curscore) / 2.0 + curscore) / (double)visits[m];
+        final_scores.push_back(make_pair(m, perc));
+//        double perc = ((((double)amounts[eee] - (double)results[eee]) / 2.0) + (double)results[eee]) / (double)amounts[eee];
     }
+
+    //sort scores
+    std::sort(final_scores.begin(), final_scores.end(), [](const pair<int, double>& lhs, const pair<int, double>& rhs) {
+        return lhs.second > rhs.second;
+    } );
+    best_move = final_scores[0].first;
+    best_score = final_scores[0].second;
 
     cerr << "Total simulations: " << simulations << endl;
     cerr << "Best Move: " << (int) best_move << " Score: " << best_score << endl;
-    cerr << "FLIP MOVE: " << (int) FLIP_MOVE << " Score: " << (int)results[FLIP_MOVE] << endl;
-
-    //cerr << "Avg. game length: " << (double) total_duration / (double) simulations << endl;
 
     return best_move;
 }

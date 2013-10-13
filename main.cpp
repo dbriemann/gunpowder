@@ -24,7 +24,8 @@ using namespace std;
 #include "Timer.hpp"
 #include "definitions.hpp"
 #include "Board.hpp"
-#include "Engine.hpp"
+#include "MCTS.hpp"
+//#include "Engine.hpp"
 //---REPLACE-END---
 
 
@@ -34,7 +35,8 @@ using namespace std;
 int main() {
     srand(time(NULL));
 
-    Engine game_engine;
+//    Engine game_engine;
+    MCTS mcts;
     WallTimer wtimer;
     double used_time = 0.0;
 
@@ -42,61 +44,65 @@ int main() {
     int last_move = 0;
     int next_move = 0;
 
-    //TODO DEBUG
-    cerr << "R gunpowder" << VERSION_STR << endl;
-    cerr.flush();
+    Board board;
 
-    //process commands
-    while(true) {
-        cin >> in_command;
-        wtimer.start();
+    mcts.runUCT(board);
 
-        used_time += LOST_TIME_MALUS;
+//    //TODO DEBUG
+//    cerr << "R gunpowder" << VERSION_STR << endl;
+//    cerr.flush();
 
-        if(in_command == "Start") {
-            //the first command received decides which color we play
-            //we are white and begin the game
-            game_engine.color = WHITE;
+//    //process commands
+//    while(true) {
+//        cin >> in_command;
+//        wtimer.start();
 
-            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
-            game_engine.permanentMove(next_move);
+//        used_time += LOST_TIME_MALUS;
 
-            used_time += wtimer.get_elapsed();
+//        if(in_command == "Start") {
+//            //the first command received decides which color we play
+//            //we are white and begin the game
+//            game_engine.color = WHITE;
 
-            cout << next_move << endl;
-            cout.flush();
-        } else if(in_command == "Quit") {
-            //exit program
-            break;
-        } else {
-            //we receive the last move played
-            last_move = atoi(in_command.c_str());
+//            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
+//            game_engine.permanentMove(next_move);
 
-            //last move may be color switch
-            if(game_engine.board.next_move == 2 && last_move == -1) {
-                game_engine.colorFlip();
-            } else {
-                game_engine.permanentMove(last_move);
-            }
+//            used_time += wtimer.get_elapsed();
 
-            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
-            game_engine.permanentMove(next_move);
-            used_time += wtimer.get_elapsed();
+//            cout << next_move << endl;
+//            cout.flush();
+//        } else if(in_command == "Quit") {
+//            //exit program
+//            break;
+//        } else {
+//            //we receive the last move played
+//            last_move = atoi(in_command.c_str());
 
-            if(next_move == FLIP_MOVE) {
-                cerr << "*** MAKE FLIPPER..." << endl;
-                cout << "-1" << endl;
-            } else {
-                cerr << "NO FLIP..." << endl;
-                cout << next_move << endl;
-            }
+//            //last move may be color switch
+//            if(game_engine.board.next_move == 2 && last_move == -1) {
+//                game_engine.colorFlip();
+//            } else {
+//                game_engine.permanentMove(last_move);
+//            }
 
-            cout.flush();
-        }
+//            next_move = game_engine.getBestMove(TOTAL_MAX_TIME - used_time);
+//            game_engine.permanentMove(next_move);
+//            used_time += wtimer.get_elapsed();
 
-        WallTimer::print(used_time);
-        cerr << endl;
-    }
+//            if(next_move == FLIP_MOVE) {
+//                //cerr << "*** MAKE FLIPPER..." << endl;
+//                cout << "-1" << endl;
+//            } else {
+//                //cerr << "NO FLIP..." << endl;
+//                cout << next_move << endl;
+//            }
+
+//            cout.flush();
+//        }
+
+//        WallTimer::print(used_time);
+//        cerr << endl;
+//    }
 
     return 0;
 }

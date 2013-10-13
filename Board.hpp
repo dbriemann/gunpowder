@@ -24,6 +24,8 @@ struct Board {
     I8 makeMove(U8 idx);
     inline U8 getScore();
     inline I8 getWinner();
+//    inline U8 isWin();
+    inline U8 getRandomMove();
 };
 
 Board::Board() {
@@ -49,6 +51,13 @@ Board & Board::operator=(const Board &other) {
     possible_moves = other.possible_moves;
 
     return *this;
+}
+
+inline
+U8 Board::getRandomMove() {
+    int moves = possible_moves.size();
+    int rand_idx = rand() % moves;
+    return possible_moves[rand_idx];
 }
 
 I8 Board::makeMove(U8 idx) {
@@ -143,6 +152,14 @@ U8 Board::getScore() {
 
     return score;
 }
+
+//inline
+//U8 Board::isWin() {
+//    if(getScore() >= 3) {
+//        return 1;
+//    }
+//    return 0;
+//}
 
 inline
 I8 Board::getWinner() {

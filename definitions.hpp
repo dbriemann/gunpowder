@@ -33,7 +33,7 @@ typedef int8_t I8;
 #define BLACK_WIN -1
 
 #define TOTAL_MAX_TIME 30.0
-#define LOST_TIME_MALUS 0.2
+#define LOST_TIME_MALUS 0.0
 
 #define FLIP(x) (((x)+1) & 1)
 #define LOGERR(msg) (std::cerr << (msg) << std::endl)
