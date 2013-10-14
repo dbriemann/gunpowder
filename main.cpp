@@ -36,7 +36,7 @@ int main() {
     srand(time(NULL));
 
 //    Engine game_engine;
-    MCTS mcts;
+    MCTSEngine mcts;
     WallTimer wtimer;
     double used_time = 0.0;
 
@@ -44,13 +44,61 @@ int main() {
     int last_move = 0;
     int next_move = 0;
 
-    Board board;
+//    mcts.runSim();
 
-    mcts.runUCT(board);
+    cerr << "R gunpowder" << VERSION_STR << endl;
+    cerr.flush();
 
-//    //TODO DEBUG
-//    cerr << "R gunpowder" << VERSION_STR << endl;
-//    cerr.flush();
+    //process commands
+    while(true) {
+        cin >> in_command;
+        wtimer.start();
+
+        used_time += LOST_TIME_MALUS;
+
+        if(in_command == "Start") {
+            //the first command received decides which color we play
+            //we are white and begin the game
+//            game_engine.color = WHITE;
+
+            next_move = mcts.runSim(TOTAL_MAX_TIME - used_time);
+            mcts.makePermanentMove(next_move);
+
+            used_time += wtimer.get_elapsed();
+
+            cout << next_move << endl;
+            cout.flush();
+        } else if(in_command == "Quit") {
+            //exit program
+            break;
+        } else {
+            //we receive the last move played
+            last_move = atoi(in_command.c_str());
+
+            //last move may be color flip
+            if(last_move == -1) {
+                mcts.makePermanentMove(FLIP_MOVE);
+            } else {
+                mcts.makePermanentMove(last_move);
+            }
+
+            next_move = mcts.runSim(TOTAL_MAX_TIME - used_time);
+            mcts.makePermanentMove(next_move);
+            used_time += wtimer.get_elapsed();
+
+            if(next_move == FLIP_MOVE) {
+                cout << "-1" << endl;
+            } else {
+                cout << next_move << endl;
+            }
+
+            cout.flush();
+        }
+
+        WallTimer::print(used_time);
+        cerr << endl;
+    }
+
 
 //    //process commands
 //    while(true) {

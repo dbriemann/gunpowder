@@ -7,7 +7,9 @@ using namespace std;
 
 #include "definitions.hpp"
 #include "Board.hpp"
+#include "Timer.hpp"
 
+static U64 MCTS_used_nodes = 0ULL;
 
 struct MCTNode {
     U32 wins;
@@ -16,15 +18,28 @@ struct MCTNode {
     U8 color;
     vector<U8> untried_moves;
     MCTNode *parent_node;
-    vector<MCTNode> child_nodes;
+    vector<MCTNode *> child_nodes;
 
+    MCTNode();
     MCTNode(MCTNode *parent, Board &board, U8 lmove);
+    ~MCTNode();
     //TODO COPY CONSTRUCTOR
 
     void update(U8 result);
     MCTNode * addChild(U8 lmove, Board &board);
     MCTNode * selectChildUCT();
+    void print(int depth);
 };
+
+MCTNode::MCTNode() {
+    wins = 0;
+    visits = 0;
+    move = 0;
+    color = WHITE;
+    untried_moves = vector<U8>();
+    parent_node = NULL;
+    MCTS_used_nodes++;
+}
 
 MCTNode::MCTNode(MCTNode *parent, Board &board, U8 lmove) {
     wins = 0;
@@ -33,6 +48,25 @@ MCTNode::MCTNode(MCTNode *parent, Board &board, U8 lmove) {
     color = FLIP(board.to_play); //color that made "lmove"
     untried_moves = board.possible_moves;
     parent_node = parent; //NULL if root
+    MCTS_used_nodes++;
+}
+
+void MCTNode::print(int depth) {
+    for(int i = 0; i < depth; i++) {
+        cerr << "   ";
+    }
+    cerr << (int)move << endl;
+    for(MCTNode *c : child_nodes) {
+        c->print(depth+1);
+    }
+}
+
+MCTNode::~MCTNode() {
+    parent_node = NULL;
+    for(MCTNode *c : child_nodes) {
+        delete c;
+    }
+    MCTS_used_nodes--;
 }
 
 void MCTNode::update(U8 result) {
@@ -41,159 +75,172 @@ void MCTNode::update(U8 result) {
 }
 
 MCTNode * MCTNode::addChild(U8 lmove, Board &board) {
-    child_nodes.push_back(MCTNode(this, board, lmove)); //TODO.. NEED COPY CONSTRUCTOR?
+    child_nodes.push_back(new MCTNode(this, board, lmove)); //TODO.. NEED COPY CONSTRUCTOR?
     untried_moves.erase(remove(untried_moves.begin(), untried_moves.end(), lmove), untried_moves.end());
-    return &child_nodes.back();
+    return child_nodes.back();
 }
 
 MCTNode * MCTNode::selectChildUCT() {
     double ltvis = log(this->visits);
-    sort(child_nodes.begin(), child_nodes.end(), [&ltvis](const MCTNode &lhs, const MCTNode &rhs) {
-        double lval = (double)lhs.wins / (double)lhs.visits + sqrt(2.0 * ltvis / (double)lhs.visits);
-        double rval = (double)rhs.wins / (double)rhs.visits + sqrt(2.0 * ltvis / (double)rhs.visits);
+    sort(child_nodes.begin(), child_nodes.end(), [&ltvis](const MCTNode *lhs, const MCTNode *rhs) {
+        double lval = (double)lhs->wins / (double)lhs->visits + sqrt(2.0 * ltvis / (double)lhs->visits);
+        double rval = (double)rhs->wins / (double)rhs->visits + sqrt(2.0 * ltvis / (double)rhs->visits);
         return lval > rval;
     });
 
-    return &child_nodes[0];
+    return child_nodes[0];
 }
 
 
 
-struct MCTS {
-    MCTS();
+struct MCTSEngine {
+    Board root_state;
+    Board sim_state;
+    MCTNode *root_node;
+    WallTimer wtimer;
+    U32 simulations;
 
-    void runUCT(Board &root); //TODO MAX TIME etc
+    MCTSEngine();
+    MCTSEngine(Board &root_state);
+
+    void makePermanentMove(U8 idx);
+    U8 runSim(double remaining_time);
+    U8 getRandomUntried();
+//    void colorFlip();
 };
 
-MCTS::MCTS() {
+MCTSEngine::MCTSEngine() {
+    simulations = 0;
+    root_state = Board();
+    root_node = new MCTNode(NULL, root_state, 0);
 }
 
-void MCTS::runUCT(Board &root) {
-    MCTNode root_node(NULL, root, 0);
-    U64 simulations = 0ULL;
+MCTSEngine::MCTSEngine(Board &game_state) {
+    simulations = 0;
+    this->root_state = game_state;
+    root_node = new MCTNode(NULL, root_state, 0);
+}
+
+//void MCTSEngine::colorFlip() {
+//    root_state.colorFLip();
+//    delete root_node;
+//    root_node = new MCTNode(NULL, root_state, 0);
+//}
+
+U8 MCTSEngine::getRandomUntried() {
+    int moves = sim_state.possible_moves.size();
+    int rand_idx = rand() % moves;
+    return sim_state.possible_moves[rand_idx];
+}
+
+void MCTSEngine::makePermanentMove(U8 idx) {
+    cerr << "Nodes before pruning: " << MCTS_used_nodes << endl;
+    root_state.makeMove(idx);
+
+    //prune leftover part of tree
+    MCTNode *old_root = root_node;
+    root_node = NULL;
+
+    //remove new root from old roots children
+    //and set it to new root
+    for(auto iter = old_root->child_nodes.begin(); iter != old_root->child_nodes.end(); iter++) {
+        if((*iter)->move == idx) {
+            cerr << "DEL" << endl;
+            //new root
+            root_node = *iter;
+            old_root->child_nodes.erase(iter);
+            break;
+        }
+    }
+
+    //node was not expanded
+    if(root_node == NULL) {
+        cerr << "NEW" << endl;
+        root_node = new MCTNode(NULL, root_state, idx);
+    }
+
+    //clean up memory
+    delete old_root;
+    old_root = NULL;
+    cerr << "New root: " << root_node << " move: " << (int)root_node->move << endl;
+    cerr << "Nodes after pruning: " << MCTS_used_nodes << endl;
+    root_node->print(0);
+}
+
+U8 MCTSEngine::runSim(double remaining_time) {
+//    MCTNode root_node(NULL, root, 0);
+    wtimer.start();
+    simulations = 0ULL;
+    MCTNode *node = NULL;
 
     //for now never stop searching
-    while(true) {
+    while(!wtimer.out_of_time(remaining_time / 10.0)) {
         simulations++;
-        MCTNode *cur_node = &root_node;
-        Board state = root;
+        node = root_node;
+        sim_state = root_state;
 
         //prior knowledge?!
 
         //selection
-        while(cur_node->untried_moves.empty() && !cur_node->child_nodes.empty()) {
+        while(node->untried_moves.empty() && !node->child_nodes.empty()) {
             //cur_node is fully expanded and non-terminal
-            cur_node = cur_node->selectChildUCT();
-            state.makeMove(cur_node->move);
+            node = node->selectChildUCT();
+            sim_state.makeMove(node->move);
         }
 
         //expansion
-        if(!cur_node->untried_moves.empty()) {
+        if(!node->untried_moves.empty()) {
             //there are still child nodes to expand
-            U8 nextm = state.getRandomMove();
-            state.makeMove(nextm);
-            cur_node = cur_node->addChild(nextm, state);
+            U8 nextm = getRandomUntried();
+            sim_state.makeMove(nextm);
+            node = node->addChild(nextm, sim_state);
         }
 
         //simulation
         I8 win = NONE;
-        while(!state.possible_moves.empty() && win == NONE) {
-            win = state.makeMove(state.getRandomMove());
+        while(!sim_state.possible_moves.empty() && win == NONE) {
+            win = sim_state.makeMove(sim_state.getRandomMove());
         }
 
         //backpropagation
-        while(cur_node != NULL) {
+        while(node != NULL) {
             if(win == WHITE_WIN) {
-                if(cur_node->color == WHITE) {
-                    cur_node->update(1);
+                if(node->color == WHITE) {
+                    node->update(1);
                 } else {
-                    cur_node->update(0);
+                    node->update(0);
                 }
             } else { //win black
-                if(cur_node->color == BLACK) {
-                    cur_node->update(1);
+                if(node->color == BLACK) {
+                    node->update(1);
                 } else {
-                    cur_node->update(0);
+                    node->update(0);
                 }
             }
 
-            cur_node = cur_node->parent_node;
-        }
-
-        if(simulations % 1000 == 0) {
-            U32 most_visits = 0;
-            U8 best_move = 0;
-            U32 wins = 0;
-
-            for(MCTNode &n : root_node.child_nodes) {
-                if(n.visits > most_visits) {
-                    most_visits = n.visits;
-                    best_move = n.move;
-                    wins = n.wins;
-                }
-            }
-
-            cerr << "Best Move: " << (int) best_move << "   visits: " << most_visits << "   wins: " << wins << endl;
+//            cerr << node << " ";
+            node = node->parent_node;
         }
     }
+
+
+    U32 most_visits = 0;
+    U8 best_move = root_state.possible_moves[0];
+    U32 wins = 0;
+
+    for(MCTNode *n : root_node->child_nodes) {
+        if(n->visits > most_visits) {
+            most_visits = n->visits;
+            best_move = n->move;
+            wins = n->wins;
+        }
+    }
+
+    cerr << "### Total Simulations: " << simulations << endl;
+    cerr << "Best Move: " << (int) best_move << "   visits: " << most_visits << "   wins: " << wins << " == " << (double)wins/(double)most_visits*100.0 << " %" << endl;
+
+    return best_move;
 }
 
-//def UCT(rootstate, itermax, verbose = False):
-//    """ Conduct a UCT search for itermax iterations starting from rootstate.
-//        Return the best move from the rootstate.
-//        Assumes 2 alternating players (player 1 starts), with game results in the range [0.0, 1.0]."""
-
-//    rootnode = Node(state = rootstate)
-
-//    for i in range(itermax):
-//        node = rootnode
-//        state = rootstate.Clone()
-
-//        # Select
-//        while node.untriedMoves == [] and node.childNodes != []: # node is fully expanded and non-terminal
-//            node = node.UCTSelectChild()
-//            state.DoMove(node.move)
-
-//        # Expand
-//        if node.untriedMoves != []: # if we can expand (i.e. state/node is non-terminal)
-//            m = random.choice(node.untriedMoves)
-//            state.DoMove(m)
-//            node = node.AddChild(m,state) # add child and descend tree
-
-//        # Rollout - this can often be made orders of magnitude quicker using a state.GetRandomMove() function
-//        while state.GetMoves() != []: # while state is non-terminal
-//            state.DoMove(random.choice(state.GetMoves()))
-
-//        # Backpropagate
-//        while node != None: # backpropagate from the expanded node and work back to the root node
-//            node.Update(state.GetResult(node.playerJustMoved)) # state is terminal. Update node with result from POV of node.playerJustMoved
-//            node = node.parentNode
-
-//    # Output some information about the tree - can be omitted
-//    if (verbose): print rootnode.TreeToString(0)
-//    else: print rootnode.ChildrenToString()
-
-//    return sorted(rootnode.childNodes, key = lambda c: c.visits)[-1].move # return the move that was most visited
-
-//def UCTPlayGame():
-//    """ Play a sample game between two UCT players where each player gets a different number
-//        of UCT iterations (= simulations = tree nodes).
-//    """
-//    # state = OthelloState(4) # uncomment to play Othello on a square board of the given size
-//    # state = OXOState() # uncomment to play OXO
-//    state = NimState(15) # uncomment to play Nim with the given number of starting chips
-//    while (state.GetMoves() != []):
-//        print str(state)
-//        if state.playerJustMoved == 1:
-//            m = UCT(rootstate = state, itermax = 1000, verbose = False) # play with values for itermax and verbose = True
-//        else:
-//            m = UCT(rootstate = state, itermax = 100, verbose = False)
-//        print "Best Move: " + str(m) + "\n"
-//        state.DoMove(m)
-//    if state.GetResult(state.playerJustMoved) == 1.0:
-//        print "Player " + str(state.playerJustMoved) + " wins!"
-//    elif state.GetResult(state.playerJustMoved) == 0.0:
-//        print "Player " + str(3 - state.playerJustMoved) + " wins!"
-//    else: print "Nobody wins!"
 
 #endif // MCTS_HPP

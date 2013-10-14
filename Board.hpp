@@ -26,6 +26,7 @@ struct Board {
     inline I8 getWinner();
 //    inline U8 isWin();
     inline U8 getRandomMove();
+    inline void colorFLip();
 };
 
 Board::Board() {
@@ -54,6 +55,21 @@ Board & Board::operator=(const Board &other) {
 }
 
 inline
+void Board::colorFLip() {
+    next_move++;
+    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
+        if(fields[i] == WHITE) {
+            fields[i] = BLACK;
+            U8 group_idx = field_to_group[i];
+            group_masks[group_idx + GROUPS_START[BLACK]] = group_masks[group_idx];
+            group_masks[group_idx] = NONE;
+        }
+    }
+    to_play = FLIP(to_play);
+    possible_moves.pop_back(); // flip is disabled
+}
+
+inline
 U8 Board::getRandomMove() {
     int moves = possible_moves.size();
     int rand_idx = rand() % moves;
@@ -61,6 +77,18 @@ U8 Board::getRandomMove() {
 }
 
 I8 Board::makeMove(U8 idx) {
+
+    if(idx == FLIP_MOVE) {
+        colorFLip();
+        return NONE;
+    } else {
+        //if second move and no flip
+        if(next_move == 2) {
+            //remove flip possibility
+            possible_moves.pop_back();
+        }
+    }
+
     //1. add stone to board
     fields[idx] = to_play;
     field_to_group[idx] = idx;
@@ -123,16 +151,21 @@ I8 Board::makeMove(U8 idx) {
     I8 win = getWinner();
 
     //remove possible move from vector
-    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
-        if(*iter == idx) {
-            possible_moves.erase(iter);
-            break;
-        }
-    }
+    possible_moves.erase(remove(possible_moves.begin(), possible_moves.end(), idx), possible_moves.end());
+//    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
+//        if(*iter == idx) {
+//            possible_moves.erase(iter);
+//            break;
+//        }
+//    }
 
     //switch color
     to_play = FLIP(to_play);
 
+    if(next_move == 1) {
+        //if this was the first move.. make flip possible
+        possible_moves.push_back(FLIP_MOVE);
+    }
     //
     next_move++;
 
