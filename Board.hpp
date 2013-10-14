@@ -151,13 +151,13 @@ I8 Board::makeMove(U8 idx) {
     I8 win = getWinner();
 
     //remove possible move from vector
-    possible_moves.erase(remove(possible_moves.begin(), possible_moves.end(), idx), possible_moves.end());
-//    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
-//        if(*iter == idx) {
-//            possible_moves.erase(iter);
-//            break;
-//        }
-//    }
+//    possible_moves.erase(remove(possible_moves.begin(), possible_moves.end(), idx), possible_moves.end());
+    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
+        if(*iter == idx) {
+            possible_moves.erase(iter);
+            break;
+        }
+    }
 
     //switch color
     to_play = FLIP(to_play);

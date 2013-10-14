@@ -31,6 +31,10 @@ struct MCTNode {
     void print(int depth);
 };
 
+//TODO --- AMAF
+//create all root children at the beginning
+//TODO --- SELECT
+
 MCTNode::MCTNode() {
     wins = 0;
     visits = 0;
@@ -38,6 +42,7 @@ MCTNode::MCTNode() {
     color = WHITE;
     untried_moves = vector<U8>();
     parent_node = NULL;
+    child_nodes = vector<MCTNode *>();
     MCTS_used_nodes++;
 }
 
@@ -48,6 +53,7 @@ MCTNode::MCTNode(MCTNode *parent, Board &board, U8 lmove) {
     color = FLIP(board.to_play); //color that made "lmove"
     untried_moves = board.possible_moves;
     parent_node = parent; //NULL if root
+    child_nodes = vector<MCTNode *>();
     MCTS_used_nodes++;
 }
 
@@ -77,18 +83,40 @@ void MCTNode::update(U8 result) {
 MCTNode * MCTNode::addChild(U8 lmove, Board &board) {
     child_nodes.push_back(new MCTNode(this, board, lmove)); //TODO.. NEED COPY CONSTRUCTOR?
     untried_moves.erase(remove(untried_moves.begin(), untried_moves.end(), lmove), untried_moves.end());
+//    for(auto iter = untried_moves.begin(); iter != untried_moves.end(); iter++) {
+//        if(*iter == lmove) {
+//            untried_moves.erase(iter);
+//            break;
+//        }
+//    }
     return child_nodes.back();
 }
 
 MCTNode * MCTNode::selectChildUCT() {
+    U8 best = 0;
+    MCTNode *child = child_nodes[0];
     double ltvis = log(this->visits);
-    sort(child_nodes.begin(), child_nodes.end(), [&ltvis](const MCTNode *lhs, const MCTNode *rhs) {
-        double lval = (double)lhs->wins / (double)lhs->visits + sqrt(2.0 * ltvis / (double)lhs->visits);
-        double rval = (double)rhs->wins / (double)rhs->visits + sqrt(2.0 * ltvis / (double)rhs->visits);
-        return lval > rval;
-    });
+    double val = (double)child->wins / (double)child->visits + sqrt(2.0 * ltvis / (double)child->visits);
 
-    return child_nodes[0];
+    for(U32 i = 1; i < child_nodes.size(); i++) {
+//        cerr << ".";
+        child = child_nodes[i];
+        double nval = (double)child->wins / (double)child->visits + sqrt(2.0 * ltvis / (double)child->visits);
+        if(nval > val) {
+            val = nval;
+            best = i;
+        }
+    }
+//    double ltvis = log(this->visits);
+//    sort(child_nodes.begin(), child_nodes.end(), [&ltvis](const MCTNode *lhs, const MCTNode *rhs) {
+//        double lval = (double)lhs->wins / (double)lhs->visits + sqrt(2.0 * ltvis / (double)lhs->visits);
+//        double rval = (double)rhs->wins / (double)rhs->visits + sqrt(2.0 * ltvis / (double)rhs->visits);
+//        return lval > rval;
+//    });
+
+//    return child_nodes[0];
+
+    return child_nodes[best];
 }
 
 
@@ -106,6 +134,7 @@ struct MCTSEngine {
     void makePermanentMove(U8 idx);
     U8 runSim(double remaining_time);
     U8 getRandomUntried();
+    void updateAMAF(U8 idx);
 //    void colorFlip();
 };
 
@@ -121,11 +150,11 @@ MCTSEngine::MCTSEngine(Board &game_state) {
     root_node = new MCTNode(NULL, root_state, 0);
 }
 
-//void MCTSEngine::colorFlip() {
-//    root_state.colorFLip();
-//    delete root_node;
-//    root_node = new MCTNode(NULL, root_state, 0);
-//}
+
+
+void MCTSEngine::updateAMAF(U8 idx) {
+
+}
 
 U8 MCTSEngine::getRandomUntried() {
     int moves = sim_state.possible_moves.size();
@@ -145,9 +174,10 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     //and set it to new root
     for(auto iter = old_root->child_nodes.begin(); iter != old_root->child_nodes.end(); iter++) {
         if((*iter)->move == idx) {
-            cerr << "DEL" << endl;
             //new root
+            cerr << "*** OLD" << endl;
             root_node = *iter;
+            root_node->parent_node = NULL;
             old_root->child_nodes.erase(iter);
             break;
         }
@@ -155,7 +185,7 @@ void MCTSEngine::makePermanentMove(U8 idx) {
 
     //node was not expanded
     if(root_node == NULL) {
-        cerr << "NEW" << endl;
+        cerr << "*** NEW" << endl;
         root_node = new MCTNode(NULL, root_state, idx);
     }
 
@@ -164,8 +194,10 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     old_root = NULL;
     cerr << "New root: " << root_node << " move: " << (int)root_node->move << endl;
     cerr << "Nodes after pruning: " << MCTS_used_nodes << endl;
-    root_node->print(0);
+//    root_node->print(0);
 }
+
+//TODO shuffle vector and get next instead of rand()
 
 U8 MCTSEngine::runSim(double remaining_time) {
 //    MCTNode root_node(NULL, root, 0);
@@ -185,7 +217,7 @@ U8 MCTSEngine::runSim(double remaining_time) {
         while(node->untried_moves.empty() && !node->child_nodes.empty()) {
             //cur_node is fully expanded and non-terminal
             node = node->selectChildUCT();
-            sim_state.makeMove(node->move);
+            sim_state.makeMove(node->move);            
         }
 
         //expansion
@@ -218,9 +250,9 @@ U8 MCTSEngine::runSim(double remaining_time) {
                 }
             }
 
-//            cerr << node << " ";
             node = node->parent_node;
         }
+
     }
 
 
