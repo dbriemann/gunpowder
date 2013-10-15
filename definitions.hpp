@@ -29,8 +29,10 @@ typedef int8_t I8;
 #define WHITE 0
 #define BLACK 1
 #define EMPTY 2
-#define WHITE_WIN 1
-#define BLACK_WIN -1
+
+#define WHITE_WIN 0
+#define BLACK_WIN 1
+#define NO_WIN 2
 
 #define TOTAL_MAX_TIME 30.0
 #define LOST_TIME_MALUS 0.0

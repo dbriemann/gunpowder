@@ -18,7 +18,7 @@ struct Board {
 
     vector<U8> possible_moves;
 
-    Board();
+    Board();    
     Board & operator=(const Board &other);
 
     I8 makeMove(U8 idx);
@@ -203,7 +203,7 @@ I8 Board::getWinner() {
             return BLACK_WIN;
         }
     }
-    return NONE;
+    return NO_WIN;
 }
 
 

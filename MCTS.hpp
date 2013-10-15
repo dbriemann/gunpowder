@@ -1,6 +1,13 @@
 #ifndef MCTS_HPP
 #define MCTS_HPP
 
+/*
+ * TODO
+ *
+ * -transposition tables?
+ *
+ */
+
 #include <vector>
 #include <cmath>
 #include <unordered_map>
@@ -19,13 +26,12 @@ struct MCTNode {
     U8 color;
     vector<U8> untried_moves;
     MCTNode *parent_node;
-//    vector<MCTNode *> child_nodes;
     unordered_map<U8, MCTNode *> child_nodes;
 
     MCTNode();
     MCTNode(MCTNode *parent, Board &board, U8 lmove);
     ~MCTNode();
-    //TODO COPY CONSTRUCTOR
+    MCTNode(const MCTNode &other);
 
     void update(U8 result);
     MCTNode * addRandomChild(Board &board);
@@ -33,16 +39,14 @@ struct MCTNode {
     void print(int depth);
 };
 
-//TODO --- AMAF
-//create all root children at the beginning
-//TODO --- SELECT
-//TODO shuffle vector and get next instead of rand()
+
+
 
 MCTNode::MCTNode() {
     wins = 0;
     visits = 0;
     move = 0;
-    color = WHITE;
+    color = BLACK; //color that made "lmove"
     untried_moves = vector<U8>();
     parent_node = NULL;
     child_nodes = unordered_map<U8, MCTNode *>();
@@ -54,22 +58,23 @@ MCTNode::MCTNode(MCTNode *parent, Board &board, U8 lmove) {
     visits = 0;
     move = lmove;
     color = FLIP(board.to_play); //color that made "lmove"
+//    cerr << "NEW COLOR: " << (int) color << endl;
     untried_moves = board.possible_moves;
-    //shuffle vector.. so taking and removing a random element is only pop_back stuff
+    //shuffle vector.. so taking and removing a random element is only pop_back stuff in the simulation phase
     random_shuffle(untried_moves.begin(), untried_moves.end());
     parent_node = parent; //NULL if root
     child_nodes = unordered_map<U8, MCTNode *>();
     MCTS_used_nodes++;
 }
 
-void MCTNode::print(int depth) {
-    for(int i = 0; i < depth; i++) {
-        cerr << "   ";
-    }
-    cerr << (int)move << endl;
-    for(auto &p : child_nodes) {
-        p.second->print(depth+1);
-    }
+MCTNode::MCTNode(const MCTNode &other) {
+    wins = other.wins;
+    visits = other.visits;
+    move = other.move;
+    color = other.color;
+    untried_moves = other.untried_moves;
+    parent_node = other.parent_node;
+    child_nodes = other.child_nodes;
 }
 
 MCTNode::~MCTNode() {
@@ -79,6 +84,16 @@ MCTNode::~MCTNode() {
         p.second = NULL;
     }
     MCTS_used_nodes--;
+}
+
+void MCTNode::print(int depth) {
+    for(int i = 0; i < depth; i++) {
+        cerr << "   ";
+    }
+    cerr << (int)move << "| " << (int)color << " |   [" << this << "](" << parent_node << ")" << endl;
+    for(auto &p : child_nodes) {
+        p.second->print(depth+1);
+    }
 }
 
 void MCTNode::update(U8 result) {
@@ -99,17 +114,18 @@ MCTNode * MCTNode::selectChildUCT() {
     MCTNode *child = child_nodes.begin()->second;
 
     double ltvis = log(this->visits);
-    double val = (double)child->wins / (double)child->visits + sqrt(2.0 * ltvis / (double)child->visits);
+    double val = ((double)child->wins / (double)child->visits) + sqrt(2.0 * ltvis / (double)child->visits);
 
     for(auto &p : child_nodes) {
 
-        double nval = (double)p.second->wins / (double)p.second->visits + sqrt(2.0 * ltvis / (double)p.second->visits);
+        double nval = ((double)p.second->wins / (double)p.second->visits) + sqrt(2.0 * ltvis / (double)p.second->visits);
 
         if(nval > val) {
             val = nval;
             child = p.second;
         }
     }
+
     return child;
 }
 
@@ -127,38 +143,45 @@ struct MCTSEngine {
 
     void makePermanentMove(U8 idx);
     U8 runSim(double remaining_time);
-//    U8 getRandomUntried();
-    void updateAMAF(U8 idx);
-    void initRoot();
-//    void colorFlip();
+    void initRoot(Board &rstate);
 };
 
 MCTSEngine::MCTSEngine() {
     simulations = 0;
     root_state = Board();
     root_node = new MCTNode(NULL, root_state, 0);
+    initRoot(root_state);
 }
 
 MCTSEngine::MCTSEngine(Board &game_state) {
     simulations = 0;
     this->root_state = game_state;
     root_node = new MCTNode(NULL, root_state, 0);
+    initRoot(root_state);
 }
 
 
-void MCTSEngine::initRoot() {
+void MCTSEngine::initRoot(Board &rstate) {
+//    cerr << "#initRoot()" << endl;
 
+    root_node->untried_moves = rstate.possible_moves;
+
+    //create all possible child nodes for root node
+    //this makes amaf updates possible
+    for(auto it = root_node->untried_moves.rbegin(); it != root_node->untried_moves.rend(); it++) {
+        sim_state = root_state;
+        sim_state.makeMove(*it);
+        root_node->child_nodes[*it] = new MCTNode(root_node, sim_state, *it);
+
+        //set artificial init values
+        //TODO prior knowledge
+        root_node->child_nodes[*it]->visits = 1;
+//        root_node->child_nodes[*it]->wins = 1;
+    }
+    root_node->untried_moves.clear();
+
+//    root_node->print(1);
 }
-
-void MCTSEngine::updateAMAF(U8 idx) {
-
-}
-
-//U8 MCTSEngine::getRandomUntried() {
-//    int moves = sim_state.possible_moves.size();
-//    int rand_idx = rand() % moves;
-//    return sim_state.possible_moves[rand_idx];
-//}
 
 void MCTSEngine::makePermanentMove(U8 idx) {
     cerr << "Nodes before pruning: " << MCTS_used_nodes << endl;
@@ -172,30 +195,30 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     //and set it to new root
     auto iter = old_root->child_nodes.find(idx);
     if(iter != old_root->child_nodes.end()) {
-        cerr << "*** OLD" << endl;
+        cerr << "*** OLD NODE AS ROOT" << endl;
         root_node = iter->second;
         root_node->parent_node = NULL;
         old_root->child_nodes.erase(idx);
     }
 
     //node was not expanded
-    if(root_node == NULL) {
-        cerr << "*** NEW" << endl;
-        root_node = new MCTNode(NULL, root_state, idx);
-    }
+//    if(root_node == NULL) {
+//        cerr << "*** NEW NODE AS ROOT" << endl;
+//        root_node = new MCTNode(NULL, root_state, idx);
+//    }
+
+    initRoot(root_state);
 
     //clean up memory
     delete old_root;
     old_root = NULL;
     cerr << "New root: " << root_node << " move: " << (int)root_node->move << endl;
     cerr << "Nodes after pruning: " << MCTS_used_nodes << endl;
-//    root_node->print(0);
 }
 
 
 
 U8 MCTSEngine::runSim(double remaining_time) {
-//    MCTNode root_node(NULL, root, 0);
     wtimer.start();
     simulations = 0ULL;
     MCTNode *node = NULL;
@@ -212,41 +235,69 @@ U8 MCTSEngine::runSim(double remaining_time) {
         while(node->untried_moves.empty() && !node->child_nodes.empty()) {
             //cur_node is fully expanded and non-terminal
             node = node->selectChildUCT();
-            sim_state.makeMove(node->move);            
+            sim_state.makeMove(node->move);
         }
 
         //expansion
         if(!node->untried_moves.empty()) {
             //there are still child nodes to expand
-//            U8 nextm = getRandomUntried();
-//            sim_state.makeMove(nextm);
             node = node->addRandomChild(sim_state);
         }
 
         //simulation
-        I8 win = NONE;
-        while(!sim_state.possible_moves.empty() && win == NONE) {
-            win = sim_state.makeMove(sim_state.getRandomMove());
+        I8 win_color = NO_WIN;
+        while(win_color == NO_WIN) {
+            win_color = sim_state.makeMove(sim_state.getRandomMove());
         }
 
+        //TODO
+        //this could be nicer.. (faster?)
         //backpropagation
         while(node != NULL) {
-            if(win == WHITE_WIN) {
-                if(node->color == WHITE) {
-                    node->update(1);
-                } else {
-                    node->update(0);
+            if(win_color == node->color) { //node is win
+                node->update(1);
+                if(node != root_node && node->move != FLIP_MOVE) {
+                    root_node->child_nodes[node->move]->update(1); //AMAF
                 }
-            } else { //win black
-                if(node->color == BLACK) {
-                    node->update(1);
-                } else {
-                    node->update(0);
+            } else { //node is loss
+                node->update(0);
+                if(node != root_node && node->move != FLIP_MOVE) {
+                    root_node->child_nodes[node->move]->update(0); //AMAF
                 }
             }
 
             node = node->parent_node;
         }
+//        while(node != NULL) {
+//            if(win == WHITE_WIN) {
+//                if(node->color == WHITE) {
+//                    node->update(1);
+//                    if(node != root_node) {
+//                        root_node->child_nodes[node->move]->update(1); //AMAF
+//                    }
+//                } else {
+//                    node->update(0);
+//                    if(node != root_node) {
+//                        root_node->child_nodes[node->move]->update(0); //AMAF
+//                    }
+//                }
+//            } else { //win black
+//                if(node->color == BLACK) {
+//                    node->update(1);
+//                    if(node != root_node) {
+//                        root_node->child_nodes[node->move]->update(1); //AMAF
+//                    }
+//                } else {
+//                    node->update(0);
+//                    if(node != root_node) {
+//                        root_node->child_nodes[node->move]->update(0); //AMAF
+//                    }
+//                }
+//            }
+
+//            node = node->parent_node;
+//        }
+//        cerr << endl;
 
     }
 
@@ -261,7 +312,7 @@ U8 MCTSEngine::runSim(double remaining_time) {
             best_move = p.second->move;
             wins = p.second->wins;
         }
-        cerr << "Node: " << (int)p.second->move << " visits: " << p.second->visits << " wins: " << p.second->wins << " == " << (double)p.second->wins/(double)p.second->visits*100.0 << " %" << endl;
+//        cerr << "Node: " << (int)p.second->move << " visits: " << p.second->visits << " wins: " << p.second->wins << " == " << (double)p.second->wins/(double)p.second->visits*100.0 << " %" << endl;
     }
 
     cerr << "### Total Simulations: " << simulations << endl;
