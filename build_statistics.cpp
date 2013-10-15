@@ -140,7 +140,19 @@ U8 EQUI_REPS[LAST_FIELD+1] = {
 int main() {
     srand(time(NULL));
 
+//    cerr << sizeof(U32) << " "
+//         << sizeof(U32) << " "
+//         << sizeof(U8)  << " "
+//         << sizeof(U8)  << " "
+//         << sizeof(vector<U8>) << " "
+//         << sizeof(MCTNode *)  << " "
+//         << sizeof(unordered_map<U8, MCTNode *>) << endl;
 
+    MCTSEngine mcts;
+
+    mcts.makePermanentMove(46);
+
+    mcts.analysis(10.0);
 
     return 0;
 }
