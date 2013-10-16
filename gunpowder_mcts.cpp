@@ -71,11 +71,11 @@ int main() {
             last_move = atoi(in_command.c_str());
 
             //last move may be color flip
-            if(last_move == -1) {
-                mcts.makePermanentMove(FLIP_MOVE);
-            } else {
+//            if(last_move == -1) {
+//                mcts.makePermanentMove(FLIP_MOVE);
+//            } else {
                 mcts.makePermanentMove(last_move);
-            }
+//            }
 
             next_move = mcts.runSim(TOTAL_MAX_TIME - used_time);
             mcts.makePermanentMove(next_move);

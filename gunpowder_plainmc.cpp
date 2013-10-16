@@ -40,6 +40,7 @@ int main() {
             //we receive the last move played
             last_move = atoi(in_command.c_str());
 
+            //TODO
             //last move may be color flip
 //            if(last_move == -1) {
 //                pmc_engine.makePermanentMove(FLIP_MOVE);

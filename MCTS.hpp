@@ -18,7 +18,7 @@
 using namespace std;
 
 #include "definitions.hpp"
-#include "Board.hpp"
+#include "FastBoard.hpp"
 #include "Timer.hpp"
 
 #define PLAIN_NODE_SIZE 90
@@ -38,12 +38,12 @@ struct MCTNode {
     unordered_map<U8, MCTNode *> child_nodes;
 
     MCTNode();
-    MCTNode(MCTNode *parent, Board &board, U8 lmove);
+    MCTNode(MCTNode *parent, FastBoard &board, U8 lmove);
     ~MCTNode();
     MCTNode(const MCTNode &other);
 
     void update(U8 result);
-    MCTNode * addRandomChild(Board &board);
+    MCTNode * addRandomChild(FastBoard &board);
     MCTNode * selectChildUCT();
     void print(int depth);
 };
@@ -63,7 +63,7 @@ MCTNode::MCTNode() {
     MCTS_used_bytes += PLAIN_NODE_SIZE;
 }
 
-MCTNode::MCTNode(MCTNode *parent, Board &board, U8 lmove) {
+MCTNode::MCTNode(MCTNode *parent, FastBoard &board, U8 lmove) {
     wins = 0;
     visits = 0;
     move = lmove;
@@ -112,7 +112,7 @@ void MCTNode::update(U8 result) {
     wins += result;
 }
 
-MCTNode * MCTNode::addRandomChild(Board &board) {
+MCTNode * MCTNode::addRandomChild(FastBoard &board) {
     U8 lmove = untried_moves.back();
     untried_moves.pop_back();
     board.makeMove(lmove);
@@ -143,29 +143,29 @@ MCTNode * MCTNode::selectChildUCT() {
 
 
 struct MCTSEngine {
-    Board root_state;
-    Board sim_state;
+    FastBoard root_state;
+    FastBoard sim_state;
     MCTNode *root_node;
     WallTimer wtimer;
     U32 simulations;
 
     MCTSEngine();
-    MCTSEngine(Board &root_state);
+    MCTSEngine(FastBoard &root_state);
 
     void makePermanentMove(U8 idx);
     U8 runSim(double remaining_time);
     void analysis(double remaining_time);
-    void initRoot(Board &rstate);
+    void initRoot(FastBoard &rstate);
 };
 
 MCTSEngine::MCTSEngine() {
     simulations = 0;
-    root_state = Board();
+    root_state = FastBoard();
     root_node = new MCTNode(NULL, root_state, 0);
     initRoot(root_state);
 }
 
-MCTSEngine::MCTSEngine(Board &game_state) {
+MCTSEngine::MCTSEngine(FastBoard &game_state) {
     simulations = 0;
     this->root_state = game_state;
     root_node = new MCTNode(NULL, root_state, 0);
@@ -173,7 +173,7 @@ MCTSEngine::MCTSEngine(Board &game_state) {
 }
 
 
-void MCTSEngine::initRoot(Board &rstate) {
+void MCTSEngine::initRoot(FastBoard &rstate) {
 //    cerr << "#initRoot()" << endl;
 
     root_node->untried_moves = rstate.possible_moves;
@@ -257,27 +257,32 @@ U8 MCTSEngine::runSim(double remaining_time) {
         }
 
         //simulation
-        I8 win_color = NO_WIN;
-        while(win_color == NO_WIN) {
-            win_color = sim_state.makeMove(sim_state.getRandomMove());
-        }
+//        I8 win_color = NO_WIN;
+//        while(win_color == NO_WIN) {
+//            win_color = sim_state.makeMove(sim_state.getRandomMove());
+//        }
+        U8 win_color = sim_state.randomFill();
 
         //backpropagation
         while(node != NULL) {
             if(win_color == node->color) { //node is win
                 node->update(1);
-                if(node != root_node && node->move != FLIP_MOVE) {
-                    root_node->child_nodes[node->move]->update(1); //AMAF
-                }
             } else { //node is loss
                 node->update(0);
-                if(node != root_node && node->move != FLIP_MOVE) {
-                    root_node->child_nodes[node->move]->update(0); //AMAF
-                }
             }
 
             node = node->parent_node;
         }
+
+        //AMAF-update
+//        for(U8 m : root_state.possible_moves) {
+//            if(win_color == sim_state.stones[m]) {
+//                root_node->child_nodes[m]->update(1);
+//            } else {
+//                root_node->child_nodes[m]->update(0);
+//            }
+//        }
+
     }
 
 
@@ -331,26 +336,30 @@ void MCTSEngine::analysis(double remaining_time) {
             }
 
             //simulation
-            I8 win_color = NO_WIN;
-            while(win_color == NO_WIN) {
-                win_color = sim_state.makeMove(sim_state.getRandomMove());
-            }
+//            I8 win_color = NO_WIN;
+//            while(win_color == NO_WIN) {
+//                win_color = sim_state.makeMove(sim_state.getRandomMove());
+//            }
+            U8 win_color = sim_state.randomFill();
 
             //backpropagation
             while(node != NULL) {
                 if(win_color == node->color) { //node is win
                     node->update(1);
-                    if(node != root_node && node->move != FLIP_MOVE) {
-                        root_node->child_nodes[node->move]->update(1); //AMAF
-                    }
                 } else { //node is loss
                     node->update(0);
-                    if(node != root_node && node->move != FLIP_MOVE) {
-                        root_node->child_nodes[node->move]->update(0); //AMAF
-                    }
                 }
 
                 node = node->parent_node;
+            }
+
+            //AMAF-update
+            for(U8 m : root_state.possible_moves) {
+                if(win_color == sim_state.stones[m]) {
+                    root_node->child_nodes[m]->update(1);
+                } else {
+                    root_node->child_nodes[m]->update(0);
+                }
             }
         }
 

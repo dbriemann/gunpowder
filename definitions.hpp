@@ -40,7 +40,9 @@ typedef int8_t I8;
 #define FLIP(x) (((x)+1) & 1)
 #define LOGERR(msg) (std::cerr << (msg) << std::endl)
 
-const I8 COLOR_SCORE_MULTIPLIER[2] = {1, -1};
+//const I32 COLOR_WIN_BONUS[2] = {1, -1};
+const U8 WIN_TRANSLATION[2][2] = {{1,0},{0,1}};
+const I8 COLOR_SCORE_CONSTANT[2] = {1, -1};
 
 const U8 GROUPS_START[2] = {0, 107};
 const U8 GROUPS_END[2] = {106, 213};

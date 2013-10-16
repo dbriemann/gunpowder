@@ -34,7 +34,6 @@ struct ResultNode {
 };
 
 struct PlainMCEngine {
-    U8 player_color;
     FastBoard board;
     FastBoard sim_board;
     WallTimer wtimer;
@@ -48,14 +47,12 @@ struct PlainMCEngine {
 };
 
 PlainMCEngine::PlainMCEngine() {
-    player_color = WHITE;
     simulations = 0;
     board = FastBoard();
     sim_board = FastBoard();
 }
 
 PlainMCEngine::PlainMCEngine(const FastBoard &board ) {
-    player_color = board.to_play;
     simulations = 0;
     this->board = board;
     sim_board = board;
@@ -71,57 +68,104 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
     double turn_time = remaining_time / 10.0;
 
     simulations = 0;
-    ResultNode results[LAST_FIELD+1];
-//    for(U8 pm : board.possible_moves) {
-//        results[pm] = ResultNode();
-//    }
+    ResultNode results[LAST_FIELD+1]; //results for white and black perspective
 
-    U8 win = NO_WIN;
+    U8 win_color = NO_WIN;
     U8 best_move = board.possible_moves[0];
     double best_score = 0.0;
 
-    cerr << "   --- Run Simulation for move no. " << (int)board.next_move << " ---" << endl;
+    cerr << "   --- Run simulation for move no. " << (int)board.next_move << " ---" << endl;
+    cerr << "   --- Turn time: " << turn_time << " sec." << endl;
 
     while(!wtimer.out_of_time(turn_time)) {
 
-        for(U8 pm : board.possible_moves) {
-            //TODO change selection strategy
-            results[pm].selections++;
-            sim_board = board;
-            sim_board.makeMove(pm);
+        //select best.. TODO better
+        U8 pm = best_move;
 
-            //mc simulation
-            win = sim_board.randomFill();
+        results[pm].selections++;
+        sim_board = board;
+        sim_board.makeMove(pm);
 
-            for(U8 i : board.possible_moves) {
-                //TODO remove if?!?!
-                if(sim_board.stones[i] == win) {
-                    results[i].update(1);
-                } else {
-                    results[i].update(0);
-                }
+        //mc simulation
+        win_color = sim_board.randomFill();
+
+
+        best_score = 0.0;
+        for(U8 i : board.possible_moves) {
+            //from player perspective
+            if(sim_board.stones[i] == board.to_play) {
+                results[i].update(WIN_TRANSLATION[board.to_play][win_color]);
             }
+//            results[i].update((sim_board.stones[i] ^ win_color) ^ 1);
 
-            simulations++;
-        }
-    }
+//            if(sim_board.stones[i] == player_color) {
+//                results[i].update(COLOR_SCORE_CONSTANT[win_color]);
+//            } else {
+//                results[i].update(-COLOR_SCORE_CONSTANT[win_color]);
+//            }
 
-    cerr << "   --- " << simulations << " simulations run." << endl;
+//            double curscore = (double)results[i].wins * COLOR_SCORE_CONSTANT[player_color];
+//            double score = (((double)results[i].updates - curscore) / 2.0 + curscore) / (double)results[i].updates;
 
-    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
-        if(board.stones[i] == EMPTY) {
             double score = (double) results[i].wins / (double) results[i].updates;
-
-            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Selections: " << results[i].selections << endl;
 
             if(score > best_score) {
                 best_score = score;
                 best_move = i;
             }
-        } else {
-            cerr << " # Move: " << (int) i << " OCCUPIED" << endl;
+
+        }
+
+
+
+        simulations++;
+
+//        best_score = 0.0;
+//        for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
+//            if(board.stones[i] == EMPTY) {
+//                double score = (double) results[i].wins / (double) results[i].updates;
+
+//                if(score > best_score) {
+//                    best_score = score;
+//                    best_move = i;
+//                }
+//            }
+//        }
+    }
+//    }
+
+    cerr << "   --- " << simulations << " simulations run." << endl;
+
+    U32 sel = 0;
+
+    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
+        if(board.stones[i] == EMPTY) {
+            double score = (double) results[i].wins / (double) results[i].updates;
+            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Selections: " << results[i].selections << endl;
+
+            if(results[i].selections > sel) {
+                sel = results[i].selections;
+                best_move = i;
+            }
         }
     }
+
+//    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
+//        if(board.stones[i] == EMPTY) {
+////            double curscore = (double)results[i].wins * COLOR_SCORE_CONSTANT[board.to_play];
+////            double score = (((double)results[i].updates - curscore) / 2.0 + curscore) / (double)results[i].updates;
+//            double score = (double) results[i].wins / (double) results[i].updates;
+
+//            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Selections: " << results[i].selections << endl;
+
+//            if(score > best_score) {
+//                best_score = score;
+//                best_move = i;
+//            }
+//        } else {
+//            cerr << " # Move: " << (int) i << " OCCUPIED" << endl;
+//        }
+//    }
 
     cerr << "---> # Best Move: " << (int) best_move << " Score: " << best_score*100.0 << "%" << endl;
 
