@@ -53,6 +53,12 @@ const U8 SCORE_LOOKUP[32] = {
     0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 1, 2, 3, 0, 0, 0, 2, 0, 1, 1, 3, 0, 2, 1, 3, 2, 3, 3, 3
 };
 
+const U8 EDGE_FIELDS[30] = {1,2,5,10,17,26,
+                             37,50,62,73,83,92,
+                             100,101,102,103,104,105,
+                             106,99,91,82,72,61,
+                             49,36,25,16,9,4};
+
 //array defines the neighborhood of every field, 0==NONE is not on the board
 const U8 NEIGHBORS[LAST_FIELD+1][6] = {
     {NONE,NONE,NONE,NONE,NONE,NONE},    //0
@@ -285,6 +291,24 @@ U8 FIELD_EDGE_RELATION[LAST_FIELD+1] = {
     EDGE_MASK3,                     //105
     EDGE_MASK3 | EDGE_MASK2         //106
 };
+
+
+/*
+ * little RNG
+ */
+static U32 g_seed;
+
+inline
+void fast_srand(U32 seed) {
+    g_seed = seed;
+}
+
+inline
+U32 fastrand() {
+    g_seed = (214013*g_seed+2531011);
+    return (g_seed>>16)&0x7FFF;
+}
+
 
 
 
