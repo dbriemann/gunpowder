@@ -23,6 +23,8 @@ using namespace std;
 
 #define PLAIN_NODE_SIZE 90
 
+
+//TODO NODE MANAGER WITH STATIC MEMORY
 static U64 MCTS_used_nodes = 0ULL;
 static U64 MCTS_used_bytes = 0ULL;
 
@@ -43,6 +45,7 @@ struct MCTNode {
     MCTNode(const MCTNode &other);
 
     void update(U8 result);
+    void explode(FastBoard &board);
     MCTNode * addRandomChild(FastBoard &board);
     MCTNode * selectChildUCT();
     void print(int depth);
@@ -112,12 +115,28 @@ void MCTNode::update(U8 result) {
     wins += result;
 }
 
+void MCTNode::explode(FastBoard &board) {
+    FastBoard cpy;
+
+    for(U8 m : untried_moves) {
+        cpy = board;
+        cpy.makeMove(m);
+
+        child_nodes[m] = new MCTNode(this, cpy, m);
+        child_nodes[m]->visits = 1;
+    }
+
+    untried_moves.clear();
+    //TODO decrease byte count..
+}
+
 MCTNode * MCTNode::addRandomChild(FastBoard &board) {
     U8 lmove = untried_moves.back();
     untried_moves.pop_back();
     board.makeMove(lmove);
 
     child_nodes[lmove] = new MCTNode(this, board, lmove);
+//    child_nodes[lmove]->explode(board);
     return child_nodes[lmove];
 }
 
@@ -154,7 +173,6 @@ struct MCTSEngine {
 
     void makePermanentMove(U8 idx);
     U8 runSim(double remaining_time);
-    void analysis(double remaining_time);
     void initRoot(FastBoard &rstate);
 };
 
@@ -196,7 +214,7 @@ void MCTSEngine::initRoot(FastBoard &rstate) {
 }
 
 void MCTSEngine::makePermanentMove(U8 idx) {
-    cerr << "Nodes before pruning: " << MCTS_used_nodes << endl;
+    cerr << "*** Nodes before pruning: " << MCTS_used_nodes << endl;
     root_state.makeMove(idx);
 
     //prune leftover part of tree
@@ -207,7 +225,7 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     //and set it to new root
     auto iter = old_root->child_nodes.find(idx);
     if(iter != old_root->child_nodes.end()) {
-        cerr << "*** OLD NODE AS ROOT" << endl;
+//        cerr << "*** OLD NODE AS ROOT" << endl;
         root_node = iter->second;
         root_node->parent_node = NULL;
         old_root->child_nodes.erase(idx);
@@ -224,8 +242,8 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     //clean up memory
     delete old_root;
     old_root = NULL;
-    cerr << "New root: " << root_node << " move: " << (int)root_node->move << endl;
-    cerr << "Nodes after pruning: " << MCTS_used_nodes << endl;
+    cerr << "*** New root: " << root_node << " move: " << (int)root_node->move << endl;
+    cerr << "*** Nodes after pruning: " << MCTS_used_nodes << endl;
 }
 
 
@@ -235,13 +253,16 @@ U8 MCTSEngine::runSim(double remaining_time) {
     simulations = 0ULL;
     MCTNode *node = NULL;
 
+    double turn_time = remaining_time / 10.0;
+
+    cerr << "   --- Run simulation for move no. " << (int)root_state.next_move << " ---" << endl;
+    cerr << "   --- Turn time: " << turn_time << " sec." << endl;
+
     //for now never stop searching
-    while(!wtimer.out_of_time(remaining_time / 10.0)) {
+    while(!wtimer.out_of_time(turn_time)) {
         simulations++;
         node = root_node;
         sim_state = root_state;
-
-        //prior knowledge?!
 
         //selection
         while(node->untried_moves.empty() && !node->child_nodes.empty()) {
@@ -257,31 +278,30 @@ U8 MCTSEngine::runSim(double remaining_time) {
         }
 
         //simulation
-//        I8 win_color = NO_WIN;
-//        while(win_color == NO_WIN) {
-//            win_color = sim_state.makeMove(sim_state.getRandomMove());
-//        }
         U8 win_color = sim_state.randomFill();
 
         //backpropagation
         while(node != NULL) {
+
             if(win_color == node->color) { //node is win
                 node->update(1);
             } else { //node is loss
                 node->update(0);
             }
 
+            if(node != root_node) {
+                //update siblings with amaf scores
+                for(auto sib_iter = node->parent_node->child_nodes.begin(); sib_iter != node->parent_node->child_nodes.end(); sib_iter++) {
+                    if(win_color == sim_state.stones[sib_iter->second->move]) {
+                        sib_iter->second->update(1);
+                    } else {
+                        sib_iter->second->update(0);
+                    }
+
+                }
+            }
             node = node->parent_node;
         }
-
-        //AMAF-update
-//        for(U8 m : root_state.possible_moves) {
-//            if(win_color == sim_state.stones[m]) {
-//                root_node->child_nodes[m]->update(1);
-//            } else {
-//                root_node->child_nodes[m]->update(0);
-//            }
-//        }
 
     }
 
@@ -290,96 +310,23 @@ U8 MCTSEngine::runSim(double remaining_time) {
     U8 best_move = root_state.possible_moves[0];
     U32 wins = 0;
 
+    cerr << "   --- " << simulations << " simulations run." << endl;
+    double score;
+
     for(auto &p : root_node->child_nodes) {
         if(p.second->visits > most_visits) {
             most_visits = p.second->visits;
             best_move = p.second->move;
             wins = p.second->wins;
         }
-//        cerr << "Node: " << (int)p.second->move << " visits: " << p.second->visits << " wins: " << p.second->wins << " == " << (double)p.second->wins/(double)p.second->visits*100.0 << " %" << endl;
+        score = (double) p.second->wins / (double) p.second->visits * 100;
+        cerr << "   # Move: " << (int) p.second->move << " Score: " << score << "%" << endl;
     }
 
-    cerr << "### Total Simulations: " << simulations << endl;
-    cerr << "---> Best Move: " << (int) best_move << "   visits: " << most_visits << "   wins: " << wins << " == " << (double)wins/(double)most_visits*100.0 << " %" << endl;
+    cerr << "---> # Best Move: " << (int) best_move << "   visits: " << most_visits << "   wins: " << wins << " == " << (double)wins/(double)most_visits*100.0 << " %" << endl;
 
     return best_move;
 }
 
-
-void MCTSEngine::analysis(double remaining_time) {
-    simulations = 0ULL;
-    MCTNode *node = NULL;
-
-    //analyse infinitely
-    while(true) {
-        wtimer.start();
-
-        //after time window is over print stats
-        while(!wtimer.out_of_time(remaining_time)) {
-            simulations++;
-            node = root_node;
-            sim_state = root_state;
-
-            //prior knowledge?!
-
-            //selection
-            while(node->untried_moves.empty() && !node->child_nodes.empty()) {
-                //cur_node is fully expanded and non-terminal
-                node = node->selectChildUCT();
-                sim_state.makeMove(node->move);
-            }
-
-            //expansion
-            if(!node->untried_moves.empty()) {
-                //there are still child nodes to expand
-                node = node->addRandomChild(sim_state);
-            }
-
-            //simulation
-//            I8 win_color = NO_WIN;
-//            while(win_color == NO_WIN) {
-//                win_color = sim_state.makeMove(sim_state.getRandomMove());
-//            }
-            U8 win_color = sim_state.randomFill();
-
-            //backpropagation
-            while(node != NULL) {
-                if(win_color == node->color) { //node is win
-                    node->update(1);
-                } else { //node is loss
-                    node->update(0);
-                }
-
-                node = node->parent_node;
-            }
-
-            //AMAF-update
-            for(U8 m : root_state.possible_moves) {
-                if(win_color == sim_state.stones[m]) {
-                    root_node->child_nodes[m]->update(1);
-                } else {
-                    root_node->child_nodes[m]->update(0);
-                }
-            }
-        }
-
-
-        U32 most_visits = 0;
-        U8 best_move = root_state.possible_moves[0];
-        U32 wins = 0;
-
-        for(auto &p : root_node->child_nodes) {
-            if(p.second->visits > most_visits) {
-                most_visits = p.second->visits;
-                best_move = p.second->move;
-                wins = p.second->wins;
-            }
-            cerr << "Node: " << (int)p.second->move << " visits: " << p.second->visits << " wins: " << p.second->wins << " == " << (double)p.second->wins/(double)p.second->visits*100.0 << " %" << endl;
-        }
-
-        cerr << "### Total Simulations: " << simulations << endl;
-        cerr << "---> Best Move: " << (int) best_move << "   visits: " << most_visits << "   wins: " << wins << " == " << (double)wins/(double)most_visits*100.0 << " %" << endl;
-    }
-}
 
 #endif // MCTS_HPP

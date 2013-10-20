@@ -152,7 +152,7 @@ int main() {
 
     mcts.makePermanentMove(46);
 
-    mcts.analysis(10.0);
+//    mcts.analysis(10.0);
 
     return 0;
 }

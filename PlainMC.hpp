@@ -68,7 +68,7 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
     double turn_time = remaining_time / 10.0;
 
     simulations = 0;
-    ResultNode results[LAST_FIELD+1]; //results for white and black perspective
+    ResultNode results[LAST_FIELD+1];//[2];
 
     U8 win_color = NO_WIN;
     U8 best_move = board.possible_moves[0];
@@ -96,6 +96,9 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
             if(sim_board.stones[i] == board.to_play) {
                 results[i].update(WIN_TRANSLATION[board.to_play][win_color]);
             }
+//            results[i].update(WIN_TRANSLATION[sim_board.stones[i]][win_color]);
+
+
 //            results[i].update((sim_board.stones[i] ^ win_color) ^ 1);
 
 //            if(sim_board.stones[i] == player_color) {
@@ -107,7 +110,8 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
 //            double curscore = (double)results[i].wins * COLOR_SCORE_CONSTANT[player_color];
 //            double score = (((double)results[i].updates - curscore) / 2.0 + curscore) / (double)results[i].updates;
 
-            double score = (double) results[i].wins / (double) results[i].updates;
+
+            double score = (double) results[i].wins / (double) results[i].updates;// + sqrt(2.0 * log(results[i].selections));
 
             if(score > best_score) {
                 best_score = score;
