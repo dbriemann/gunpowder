@@ -21,8 +21,8 @@ using namespace std;
 
 #include "Timer.hpp"
 #include "definitions.hpp"
-#include "Board.hpp"
-#include "MCTS.hpp"
+//#include "Board.hpp"
+//#include "MCTS.hpp"
 
 U8 EQUI_REPS[LAST_FIELD+1] = {
     NONE,                           //0
@@ -139,20 +139,7 @@ U8 EQUI_REPS[LAST_FIELD+1] = {
  */
 int main() {
     srand(time(NULL));
-
-//    cerr << sizeof(U32) << " "
-//         << sizeof(U32) << " "
-//         << sizeof(U8)  << " "
-//         << sizeof(U8)  << " "
-//         << sizeof(vector<U8>) << " "
-//         << sizeof(MCTNode *)  << " "
-//         << sizeof(unordered_map<U8, MCTNode *>) << endl;
-
-    MCTSEngine mcts;
-
-    mcts.makePermanentMove(46);
-
-//    mcts.analysis(10.0);
+    fast_srand(time(NULL));
 
     return 0;
 }

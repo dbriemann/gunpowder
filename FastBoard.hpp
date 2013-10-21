@@ -20,8 +20,8 @@ struct FastBoard {
     FastBoard & operator=(const FastBoard &other);
 
     inline void makeMove(U8 idx);
-    inline U8 randomFill();
-    inline U8 getWinner();
+    inline I8 randomFill();
+    inline I8 getWinner();
 };
 
 FastBoard::FastBoard() {
@@ -44,7 +44,7 @@ FastBoard & FastBoard::operator=(const FastBoard &other) {
 }
 
 inline
-U8 FastBoard::randomFill() {
+I8 FastBoard::randomFill() {
     //shuffle possible moves with fisher-yates-shuffle
 //    U32 r;
 //    for(int i = possible_moves.size()-1; i > 0; i--) {
@@ -70,7 +70,7 @@ U8 FastBoard::randomFill() {
  * Works only on filled board.
  */
 inline
-U8 FastBoard::getWinner() {
+I8 FastBoard::getWinner() {
     //init needed data
     U8 white_score = 0;
     U8 mask = NONE;

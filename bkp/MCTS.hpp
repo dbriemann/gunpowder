@@ -22,8 +22,6 @@ using namespace std;
 #include "FastBoard.hpp"
 #include "Timer.hpp"
 
-#define PLAIN_NODE_SIZE 90
-
 
 //TODO NODE MANAGER WITH STATIC MEMORY
 static U64 MCTS_used_nodes = 0ULL;
@@ -64,7 +62,7 @@ MCTNode::MCTNode() {
     parent_node = NULL;
     child_nodes = unordered_map<U8, MCTNode *>();
     MCTS_used_nodes++;
-    MCTS_used_bytes += PLAIN_NODE_SIZE;
+    MCTS_used_bytes += sizeof(MCTNode);
 }
 
 MCTNode::MCTNode(MCTNode *parent, FastBoard &board, U8 lmove) {
@@ -72,13 +70,15 @@ MCTNode::MCTNode(MCTNode *parent, FastBoard &board, U8 lmove) {
     visits = 0;
     move = lmove;
     color = FLIP(board.to_play); //color that made "lmove"
+
     untried_moves = board.possible_moves;
     //shuffle vector.. so taking and removing a random element is only pop_back stuff in the simulation phase
     random_shuffle(untried_moves.begin(), untried_moves.end());
+
     parent_node = parent; //NULL if root
     child_nodes = unordered_map<U8, MCTNode *>();
     MCTS_used_nodes++;
-    MCTS_used_bytes += PLAIN_NODE_SIZE;
+    MCTS_used_bytes += sizeof(MCTNode) + untried_moves.size();
 }
 
 MCTNode::MCTNode(const MCTNode &other) {
@@ -89,7 +89,7 @@ MCTNode::MCTNode(const MCTNode &other) {
     untried_moves = other.untried_moves;
     parent_node = other.parent_node;
     child_nodes = other.child_nodes;
-    MCTS_used_bytes += PLAIN_NODE_SIZE;
+    MCTS_used_bytes += sizeof(MCTNode);
 }
 
 MCTNode::~MCTNode() {
@@ -99,6 +99,7 @@ MCTNode::~MCTNode() {
         p.second = NULL;
     }
     MCTS_used_nodes--;
+    MCTS_used_bytes -= sizeof(MCTNode);
 }
 
 void MCTNode::print(int depth) {
@@ -127,13 +128,16 @@ void MCTNode::explode(FastBoard &board) {
         child_nodes[m]->visits = 1;
     }
 
+    MCTS_used_bytes -= untried_moves.size();
     untried_moves.clear();
+
     //TODO decrease byte count..
 }
 
 MCTNode * MCTNode::addRandomChild(FastBoard &board) {
     U8 lmove = untried_moves.back();
     untried_moves.pop_back();
+    MCTS_used_bytes--;
     board.makeMove(lmove);
 
     child_nodes[lmove] = new MCTNode(this, board, lmove);
@@ -159,8 +163,6 @@ MCTNode * MCTNode::selectChildUCT() {
 
     return child;
 }
-
-
 
 struct MCTSEngine {
     FastBoard root_state;
@@ -194,7 +196,6 @@ MCTSEngine::MCTSEngine(FastBoard &game_state) {
 
 void MCTSEngine::initRoot(FastBoard &rstate) {
 //    cerr << "#initRoot()" << endl;
-
     root_node->untried_moves = rstate.possible_moves;
 
     //create all possible child nodes for root node
@@ -210,12 +211,12 @@ void MCTSEngine::initRoot(FastBoard &rstate) {
 //        root_node->child_nodes[*it]->wins = 1;
     }
     root_node->untried_moves.clear();
-
 //    root_node->print(1);
 }
 
 void MCTSEngine::makePermanentMove(U8 idx) {
     cerr << "*** Nodes before pruning: " << MCTS_used_nodes << endl;
+    cerr << "### " << MCTS_used_bytes << " bytes used before pruning." << endl;
     root_state.makeMove(idx);
 
     //prune leftover part of tree
@@ -245,6 +246,7 @@ void MCTSEngine::makePermanentMove(U8 idx) {
     old_root = NULL;
     cerr << "*** New root: " << root_node << " move: " << (int)root_node->move << endl;
     cerr << "*** Nodes after pruning: " << MCTS_used_nodes << endl;
+    cerr << "### " << MCTS_used_bytes << " bytes used after pruning." << endl;
 }
 
 
@@ -272,10 +274,12 @@ U8 MCTSEngine::runSim(double remaining_time) {
             sim_state.makeMove(node->move);
         }
 
-        //expansion
-        if(!node->untried_moves.empty()) {
-            //there are still child nodes to expand
-            node = node->addRandomChild(sim_state);
+        if(MCTS_used_bytes / 1024 / 1024 < 60) {
+            //expansion
+            if(!node->untried_moves.empty()) {
+                //there are still child nodes to expand
+                node = node->addRandomChild(sim_state);
+            }
         }
 
         //simulation
@@ -311,7 +315,7 @@ U8 MCTSEngine::runSim(double remaining_time) {
     U8 best_move = root_state.possible_moves[0];
     U32 wins = 0;
 
-    cerr << "   --- " << simulations << " simulations run." << endl;
+    cerr << "   --- " << simulations << " simulations run." << endl;    
     double score;
 
     for(auto &p : root_node->child_nodes) {

@@ -8,27 +8,19 @@ using namespace std;
 #include "Timer.hpp"
 
 struct ResultNode {
-    U32 wins;
+    I32 score;
     U32 updates;
     U32 selections;
-//    U8 move;
 
     ResultNode() {
-        wins = 0;
+        score = 0;
         updates = 0;
         selections = 0;
-//        move = 0;
     }
 
-//    ResultNode(U32 wins, U32 updates, U32 selections, U8 move) {
-//        this->wins = wins;
-//        this->updates = updates;
-//        this->selections = selections;
-//        this->move = move;
-//    }
-
-    void update(U8 score) {
-        wins += score;
+    inline
+    void update(I8 score) {
+        this->score += score;
         updates++;
     }
 };
@@ -68,114 +60,67 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
     double turn_time = remaining_time / 10.0;
 
     simulations = 0;
-    ResultNode results[LAST_FIELD+1];//[2];
+    ResultNode results[LAST_FIELD+1];
 
-    U8 win_color = NO_WIN;
+    I8 win_score = NO_WIN;
     U8 best_move = board.possible_moves[0];
-    double best_score = 0.0;
 
     cerr << "   --- Run simulation for move no. " << (int)board.next_move << " ---" << endl;
     cerr << "   --- Turn time: " << turn_time << " sec." << endl;
 
     while(!wtimer.out_of_time(turn_time)) {
 
-        //select best.. TODO better
-        U8 pm = best_move;
+        //selection -> TODO: improve
+        U8 r = fastrand() % board.possible_moves.size(); //best_move;
+        U8 pm = board.possible_moves[r];
 
         results[pm].selections++;
         sim_board = board;
         sim_board.makeMove(pm);
 
         //mc simulation
-        win_color = sim_board.randomFill();
+        win_score = sim_board.randomFill();
 
         //TODO
         //use fastboard.possible_moves as a move_history...
         //weight importance with distance to current board
 
-
-        best_score = 0.0;
         for(U8 i : board.possible_moves) {
             //from player perspective
             if(sim_board.stones[i] == board.to_play) {
-                results[i].update(WIN_TRANSLATION[board.to_play][win_color]);
+                results[i].update(win_score);
+            } else {
+                results[i].update(-win_score);
             }
-//            results[i].update(WIN_TRANSLATION[sim_board.stones[i]][win_color]);
-
-
-//            results[i].update((sim_board.stones[i] ^ win_color) ^ 1);
-
-//            if(sim_board.stones[i] == player_color) {
-//                results[i].update(COLOR_SCORE_CONSTANT[win_color]);
-//            } else {
-//                results[i].update(-COLOR_SCORE_CONSTANT[win_color]);
-//            }
-
-//            double curscore = (double)results[i].wins * COLOR_SCORE_CONSTANT[player_color];
-//            double score = (((double)results[i].updates - curscore) / 2.0 + curscore) / (double)results[i].updates;
-
-
-            double score = (double) results[i].wins / (double) results[i].updates;// + sqrt(2.0 * log(results[i].selections));
-
-            if(score > best_score) {
-                best_score = score;
-                best_move = i;
-            }
-
         }
 
-
-
         simulations++;
-
-//        best_score = 0.0;
-//        for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
-//            if(board.stones[i] == EMPTY) {
-//                double score = (double) results[i].wins / (double) results[i].updates;
-
-//                if(score > best_score) {
-//                    best_score = score;
-//                    best_move = i;
-//                }
-//            }
-//        }
     }
-//    }
+
 
     cerr << "   --- " << simulations << " simulations run." << endl;
 
     U32 sel = 0;
 
+    I32 best_rel_score = -1000000;
+    double best_score = 0.0;
+
     for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
         if(board.stones[i] == EMPTY) {
-            double score = (double) results[i].wins / (double) results[i].updates;
-            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Selections: " << results[i].selections << endl;
+            I32 rel_score = results[i].score * COLOR_WIN_BONUS[board.to_play];
+            double score = ((double) results[i].updates + (double) rel_score) * 0.5 / (double)results[i].updates;
+            cerr << " # Move: " << (int) i << " Diff: " << rel_score << " Score: " << score*100.0 << "% Updates: " << results[i].updates << " Selections: " << results[i].selections << endl;
 
-            if(results[i].selections > sel) {
+            if(rel_score > best_rel_score) {
+                best_rel_score = rel_score;
+                best_score = score;
                 sel = results[i].selections;
                 best_move = i;
             }
         }
     }
 
-//    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
-//        if(board.stones[i] == EMPTY) {
-////            double curscore = (double)results[i].wins * COLOR_SCORE_CONSTANT[board.to_play];
-////            double score = (((double)results[i].updates - curscore) / 2.0 + curscore) / (double)results[i].updates;
-//            double score = (double) results[i].wins / (double) results[i].updates;
-
-//            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Selections: " << results[i].selections << endl;
-
-//            if(score > best_score) {
-//                best_score = score;
-//                best_move = i;
-//            }
-//        } else {
-//            cerr << " # Move: " << (int) i << " OCCUPIED" << endl;
-//        }
-//    }
-
-    cerr << "---> # Best Move: " << (int) best_move << " Score: " << best_score*100.0 << "%" << endl;
+    cerr << "---> # Best Move: " << (int) best_move << " Diff: " << best_rel_score << " Score: " << best_score*100.0 << "% Selections: " << sel << endl;
 
     return best_move;
 }

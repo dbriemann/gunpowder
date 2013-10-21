@@ -11,54 +11,6 @@ int main() {
     fast_srand(time(NULL));
 
 
-//    cerr << "TODO: test FastBoard validity" << endl;
-//    FastBoard fb;
-//    U8 win = fb.randomFill();
-//    cerr << "WIN: " << (int)win << endl;
-//    vector<U8> white_stones;
-//    vector<U8> black_stones;
-//    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
-//        if(i == 0) {
-//            cerr << "DUDE" << endl;
-//        }
-//        if(fb.stones[i] == WHITE) {
-//            white_stones.push_back(i);
-//        } else if(fb.stones[i] == BLACK) {
-//            black_stones.push_back(i);
-//        } else {
-//            cerr << "ERROR YO" << endl;
-//        }
-//    }
-
-//    cerr << "stone count white: " << white_stones.size() << endl;
-//    cerr << "stone count black: " << black_stones.size() << endl;
-
-//    cerr << "Game: (";
-////    for(int i = FIRST_FIELD; i <= LAST_FIELD / 2; i++) {
-//    while(!white_stones.empty()) {
-//        U8 w = white_stones.back();
-//        white_stones.pop_back();
-//        U8 b = black_stones.back();
-//        black_stones.pop_back();
-
-//        if(w == 0) {
-//            cerr << endl << "DUDE WHITE: " << w << endl;
-//        }
-//        if(b == 0) {
-//            cerr << endl << "DUDE BLACK: " << b << endl;
-//        }
-//        cerr << (int)w << ",";
-//        cerr << (int)b;
-//        if(!white_stones.empty()) {
-//            cout << ",";
-//        } else {
-//            cout << ")";
-//        }
-//    }
-//    cout << endl;
-//    return 1;
-
-
     cerr << "R gunpowder" << VERSION_STR << endl;
     cerr.flush();
 
