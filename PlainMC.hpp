@@ -89,6 +89,10 @@ inline U8 PlainMCEngine::runSim(double remaining_time) {
         //mc simulation
         win_color = sim_board.randomFill();
 
+        //TODO
+        //use fastboard.possible_moves as a move_history...
+        //weight importance with distance to current board
+
 
         best_score = 0.0;
         for(U8 i : board.possible_moves) {

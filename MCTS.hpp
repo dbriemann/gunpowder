@@ -7,8 +7,9 @@
  * -transposition tables?
  * -prior knowledge
  * -remove dead areas / fillin
- * -permutation game sim
  * -memory count(in progress)
+ * -const correctness
+ * -inline specific functions
  *
  */
 
