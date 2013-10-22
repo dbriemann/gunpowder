@@ -8,7 +8,7 @@ using namespace std;
 #include "Timer.hpp"
 
 struct ResultNode {
-    U32 wins;
+    I32 wins;
     U32 updates;
     U32 selections;
 
@@ -19,7 +19,7 @@ struct ResultNode {
     }
 
     inline
-    void update(U8 score) {
+    void update(I8 score) {
         this->wins += score;
         updates++;
     }
@@ -73,19 +73,19 @@ U8 PlainMCEngine::runSim(double remaining_time) {
     while(!wtimer.out_of_time(turn_time)) {
         //selection -> TODO: improve
         //UCTValue(parent, n) = winrate + sqrt((ln(parent.visits))/(5*n.nodevisits))
-        U8 pm = board.possible_moves[0];
-        double uct = 0;
-        double simlog = log(simulations);
-        for(U8 m : board.possible_moves) {
-            double u = (double) results[m].wins / (double) results[m].updates
-                    + sqrt(simlog / (5.0*(results[m].selections+1)));
-            if(u > uct) {
-                pm = m;
-                uct = u;
-            }
-        }
-//        U8 r = fastrand() % board.possible_moves.size(); //best_move;
-//        U8 pm = board.possible_moves[r];
+//        U8 pm = board.possible_moves[0];
+//        double uct = 0;
+//        double simlog = log(simulations);
+//        for(U8 m : board.possible_moves) {
+//            double u = (double) results[m].wins / (double) results[m].updates
+//                    + sqrt(simlog / (5.0*(results[m].selections+1)));
+//            if(u > uct) {
+//                pm = m;
+//                uct = u;
+//            }
+//        }
+        U8 r = fastrand() % board.possible_moves.size(); //best_move;
+        U8 pm = board.possible_moves[r];
 
         results[pm].selections++;
         sim_board = board;
@@ -101,9 +101,10 @@ U8 PlainMCEngine::runSim(double remaining_time) {
         for(U8 m : board.possible_moves) {
             //from player perspective
             if(sim_board.stones[m] == board.to_play) {
-                results[m].update(WIN_TRANSLATION[board.to_play][win_color]);
+                results[m].update(COLOR_WIN_BONUS[win_color]);
+//                results[m].update(WIN_TRANSLATION[board.to_play][win_color]);
             } else {
-                //TODO .. opponent stones.. use information
+                results[m].update(-COLOR_WIN_BONUS[win_color]);
             }
         }
 
@@ -115,18 +116,18 @@ U8 PlainMCEngine::runSim(double remaining_time) {
 
     U32 sel = 0;
 
-//    I32 best_rel_score = -1000000;
+    I32 best_rel_score = -1000000;
     double best_score = 0.0;
 
     for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
         if(board.stones[i] == EMPTY) {
-//            I32 rel_score = results[i].win * COLOR_WIN_BONUS[board.to_play];
-//            double score = ((double) results[i].updates + (double) rel_score) * 0.5 / (double)results[i].updates;
-            double score = (double)results[i].wins / (double) results[i].updates;
+            I32 rel_score = results[i].wins * COLOR_WIN_BONUS[board.to_play];
+            double score = ((double) results[i].updates + (double) rel_score) * 0.5 / (double)results[i].updates;
+//            double score = (double)results[i].wins / (double) results[i].updates;
             cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Updates: " << results[i].updates << " Selections: " << results[i].selections << endl;
 
-            if(score > best_score) {
-//                best_rel_score = rel_score;
+            if(rel_score > best_rel_score) {
+                best_rel_score = rel_score;
                 best_score = score;
                 sel = results[i].selections;
                 best_move = i;
