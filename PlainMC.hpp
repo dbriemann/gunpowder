@@ -66,24 +66,24 @@ U8 PlainMCEngine::runSim(double remaining_time) {
 
     U8 win_color = NO_WIN;
     U8 best_move = board.possible_moves[0];
-    unordered_map<U8, U32> move_selector;
-    U8 select_move = board.possible_moves[fastrand() % board.possible_moves.size()];
-    U32 most_selections = 0;
 
     cerr << "   --- Run simulation for move no. " << (int)board.next_move << " ---" << endl;
     cerr << "   --- Turn time: " << turn_time << " sec." << endl;
 
     while(!wtimer.out_of_time(turn_time)) {
-
-        for(auto &p : move_selector) {
-            if(p.second > most_selections) {
-                most_selections = p.second;
-                select_move = p.first;
+        //selection -> TODO: improve
+        //UCTValue(parent, n) = winrate + sqrt((ln(parent.visits))/(5*n.nodevisits))
+        U8 pm = board.possible_moves[0];
+        double uct = 0;
+        double simlog = log(simulations);
+        for(U8 m : board.possible_moves) {
+            double u = (double) results[m].wins / (double) results[m].updates
+                    + sqrt(simlog / (5.0*(results[m].selections+1)));
+            if(u > uct) {
+                pm = m;
+                uct = u;
             }
         }
-        U8 pm = select_move;
-
-        //selection -> TODO: improve
 //        U8 r = fastrand() % board.possible_moves.size(); //best_move;
 //        U8 pm = board.possible_moves[r];
 
@@ -102,10 +102,8 @@ U8 PlainMCEngine::runSim(double remaining_time) {
             //from player perspective
             if(sim_board.stones[m] == board.to_play) {
                 results[m].update(WIN_TRANSLATION[board.to_play][win_color]);
-            }
-
-            if(win_color == sim_board.stones[m]) {
-                move_selector[m]++;
+            } else {
+                //TODO .. opponent stones.. use information
             }
         }
 
