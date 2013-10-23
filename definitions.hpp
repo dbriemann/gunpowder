@@ -17,7 +17,7 @@ typedef int8_t I8;
 
 
 //"v0.2"
-#define VERSION_STR "v0.3"
+#define VERSION_STR "v0.4"
 
 #define FIRST_FIELD 1
 #define LAST_FIELD 106

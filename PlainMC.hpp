@@ -52,7 +52,11 @@ PlainMCEngine::PlainMCEngine(const FastBoard &board ) {
 
 inline
 void PlainMCEngine::makePermanentMove(U8 idx) {
-    board.makeMove(idx);
+    if(idx == FLIP_MOVE) {
+        board.colorFlip();
+    } else {
+        board.makeMove(idx);
+    }
 }
 
 inline
@@ -62,52 +66,54 @@ U8 PlainMCEngine::runSim(double remaining_time) {
     double turn_time = remaining_time / 10.0;
 
     simulations = 0;
-    ResultNode results[LAST_FIELD+1];
+    ResultNode results[2][FLIP_MOVE+1]; //white,black
 
+    U8 player = board.to_play;
+    U8 opponent = FLIP(board.to_play);
     U8 win_color = NO_WIN;
-    U8 best_move = board.possible_moves[0];
-    U8 next_move = best_move;
-    double best_score = 0.0;
+    U8 best_move[2]; //white,black
+    U8 next_move[2]; //white,black
+    next_move[player] = board.possible_moves[0]; //could crash if there are no more possible moves
+    next_move[opponent] = board.possible_moves[1]; //guess: can't happen, game is finished before that state is reached
+    double best_score[2]; //white,black
+    double uct[2]; //white,black
 
-    cerr << "   --- Run simulation for move no. " << (int)board.next_move << " ---" << endl;
+    cerr << "   --- Run simulation for move no. " << (int)board.next_move << " --- Color = " << player << endl;
     cerr << "   --- Turn time: " << turn_time << " sec." << endl;
 
     while(!wtimer.out_of_time(turn_time)) {
-        //selection -> TODO: improve
-//        U8 r = fastrand() % board.possible_moves.size(); //best_move;
-//        next_move = board.possible_moves[r];
 
-        results[next_move].selections++;
+        results[player][next_move[player]].selections++;
         sim_board = board;
-        sim_board.makeMove(next_move);
+        sim_board.makeMove(next_move[player]);
+
+        //TODO -- uct only selects from stones played by the color...
+//        if(next_move[opponent] == next_move[player]) {
+//            //if this happens opponent move is chosen randomly
+//            cerr << "BANGBANG" << endl;
+//        }
 
         //mc simulation
-        win_color = sim_board.randomFill();
+        results[opponent][next_move[opponent]].selections++;
+        win_color = sim_board.randomFill(next_move[opponent]);
 
         simulations++;
+        best_score[WHITE] = 0; best_score[BLACK] = 0; uct[WHITE] = 0; uct[BLACK] = 0;
 
-        double uct = 0;
+
         double simlog = log(simulations);
 
         for(U8 m : board.possible_moves) {
-            //from player perspective
-            if(sim_board.stones[m] == board.to_play) {
-//                results[m].update(COLOR_WIN_BONUS[win_color]);
-                results[m].update(WIN_TRANSLATION[board.to_play][win_color]);
-            }
-//            else {
-//                results[m].update(-COLOR_WIN_BONUS[win_color]);
-//            }
+            U8 stone_color = sim_board.stones[m];
+            results[stone_color][m].update(WIN_TRANSLATION[stone_color][win_color]);
 
             //UCTValue(parent, n) = winrate + sqrt((ln(parent.visits))/(n.nodevisits))
-//            I32 rel_score = results[m].wins * COLOR_WIN_BONUS[board.to_play];
-//            double score = ((double) results[m].updates + (double) rel_score) * 0.5 / (double)results[m].updates;
-            double score = (double)results[m].wins / (double) results[m].updates;
-            double u = score + sqrt(simlog / (results[m].selections+1));
+            //selection
+            uct[stone_color] = (double)results[stone_color][m].wins / (double) results[stone_color][m].updates + sqrt(simlog / (results[stone_color][m].selections+1));
 
-            if(u > uct) {
-                next_move = m;
-                uct = u;
+            if(uct[stone_color] > best_score[stone_color]) {
+                next_move[stone_color] = m;
+                best_score[stone_color] = uct[stone_color];
             }
         }        
     }
@@ -116,24 +122,23 @@ U8 PlainMCEngine::runSim(double remaining_time) {
 
     U32 sel = 0;
 
-    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
-        if(board.stones[i] == EMPTY) {
-//            I32 rel_score = results[i].wins * COLOR_WIN_BONUS[board.to_play];
-//            double score = ((double) results[i].updates + (double) rel_score) * 0.5 / (double)results[i].updates;
-            double score = (double)results[i].wins / (double) results[i].updates;
-            cerr << " # Move: " << (int) i << " Score: " << score*100.0 << "% Updates: " << results[i].updates << " Selections: " << results[i].selections << endl;
+    for(U8 m : board.possible_moves) {
+        double pscore = (double)results[player][m].wins / (double) results[player][m].updates;
+        double oscore = (double)results[opponent][m].wins / (double) results[opponent][m].updates;
+        cerr << " # Move: " << (int) m << " Player: " << pscore*100.0 << "% Opponent: " << oscore*100.0
+             << "% Updates: " << results[player][m].updates
+             << " Player Selections: " << results[player][m].selections << " Opponent Selections: " << results[opponent][m].selections << endl;
 
-            if(results[i].selections > sel) {
-                best_score = score;
-                sel = results[i].selections;
-                best_move = i;
-            }
+        if(results[player][m].selections > sel) {
+            best_score[player] = pscore;
+            sel = results[player][m].selections;
+            best_move[player] = m;
         }
     }
 
-    cerr << "---> # Best Move: " << (int) best_move << " Score: " << best_score*100.0 << "% Selections: " << sel << endl;
+    cerr << "---> # Best Move: " << (int) best_move[player] << " Score: " << best_score[player]*100.0 << "% Selections: " << sel << endl;
 
-    return best_move;
+    return best_move[player];
 }
 
 #endif // PLAINMC_HPP

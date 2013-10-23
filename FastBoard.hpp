@@ -20,8 +20,9 @@ struct FastBoard {
     FastBoard & operator=(const FastBoard &other);
 
     inline void makeMove(U8 idx);
-    inline I8 randomFill();
+    inline I8 randomFill(U8 next_move);
     inline I8 getWinner();
+    inline void colorFlip();
 };
 
 FastBoard::FastBoard() {
@@ -44,7 +45,13 @@ FastBoard & FastBoard::operator=(const FastBoard &other) {
 }
 
 inline
-I8 FastBoard::randomFill() {
+I8 FastBoard::randomFill(U8 next_move) {
+    U8 color = to_play;
+
+    //the first move(opponent answer) is selected by uct before and executed at first
+    stones[next_move] = color;
+    color = FLIP(color);
+
     //shuffle possible moves with fisher-yates-shuffle
 //    U32 r;
 //    for(int i = possible_moves.size()-1; i > 0; i--) {
@@ -53,13 +60,14 @@ I8 FastBoard::randomFill() {
 //        exit(1);
 //    }
 
+    //fill board randomly
     random_shuffle(possible_moves.begin(), possible_moves.end());
 
-    //fill board
-    U8 color = to_play;
     for(U8 idx : possible_moves) {
-        stones[idx] = color;
-        color = FLIP(color);
+        if(idx != next_move) {
+            stones[idx] = color;
+            color = FLIP(color);
+        }
     }
 
     return getWinner();
@@ -125,23 +133,24 @@ I8 FastBoard::getWinner() {
 }
 
 inline
+void FastBoard::colorFlip() {
+    for(int i = FIRST_FIELD; i <= LAST_FIELD; i++) {
+        if(stones[i] != EMPTY) {
+            stones[i] = FLIP(stones[i]);
+            break;
+        }
+    }
+    to_play = FLIP(to_play);
+    next_move++;
+}
+
+inline
 void FastBoard::makeMove(U8 idx) {
     stones[idx] = to_play;
     to_play = FLIP(to_play);
     next_move++;
 
     possible_moves.erase(remove(possible_moves.begin(), possible_moves.end(), idx), possible_moves.end());
-    //    for(auto iter = possible_moves.begin(); iter != possible_moves.end(); iter++) {
-    //        if(*iter == idx) {
-    //            possible_moves.erase(iter);
-    //            break;
-    //        }
-    //    }
-
-
-    //TODO remove dead cells..
-
-
 }
 
 #endif // FASTBOARD_HPP
