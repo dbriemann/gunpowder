@@ -21,8 +21,8 @@ using namespace std;
 
 #include "Timer.hpp"
 #include "definitions.hpp"
-//#include "Board.hpp"
-//#include "MCTS.hpp"
+#include "FastBoard.hpp"
+#include "PlainMC.hpp"
 
 U8 EQUI_REPS[LAST_FIELD+1] = {
     NONE,                           //0
@@ -140,6 +140,12 @@ U8 EQUI_REPS[LAST_FIELD+1] = {
 int main() {
     srand(time(NULL));
     fast_srand(time(NULL));
+
+    FastBoard board;
+
+    PlainMCEngine pmc(board);
+
+    pmc.runAnalysis(60);
 
     return 0;
 }

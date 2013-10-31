@@ -47,11 +47,11 @@ int main() {
 
             //TODO
             //last move may be color flip
-//            if(last_move == -1) {
-//                pmc_engine.makePermanentMove(FLIP_MOVE);
-//            } else {
+            if(last_move == -1) {
+                pmc_engine.makePermanentMove(FLIP_MOVE);
+            } else {
                 pmc_engine.makePermanentMove(last_move);
-//            }
+            }
 
             next_move = pmc_engine.runSim(TOTAL_MAX_TIME - used_time);
             pmc_engine.makePermanentMove(next_move);
