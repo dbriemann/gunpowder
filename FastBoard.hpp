@@ -21,6 +21,7 @@ struct FastBoard {
 
     inline void makeMove(U8 idx);
     inline I8 randomFill(U8 next_move);
+    inline I8 randomFill();
     inline I8 getWinner();
     inline void colorFlip();
 };
@@ -42,6 +43,29 @@ FastBoard & FastBoard::operator=(const FastBoard &other) {
     possible_moves = other.possible_moves;
 
     return *this;
+}
+
+inline
+I8 FastBoard::randomFill() {
+    U8 color = to_play;
+
+    //shuffle possible moves with fisher-yates-shuffle
+//    U32 r;
+//    for(int i = possible_moves.size()-1; i > 0; i--) {
+//        r = fastrand() % (i+1);
+//        swap(possible_moves[i], possible_moves[r]);
+//        exit(1);
+//    }
+
+    //fill board randomly
+    random_shuffle(possible_moves.begin(), possible_moves.end());
+
+    for(U8 idx : possible_moves) {
+        stones[idx] = color;
+        color = FLIP(color);
+    }
+
+    return getWinner();
 }
 
 inline

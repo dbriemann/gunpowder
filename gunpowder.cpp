@@ -31,7 +31,11 @@ int main() {
         used_time += LOST_TIME_MALUS;
 
         if(in_command == "Start") {
-            next_move = pmc_engine.runSim(TOTAL_MAX_TIME - used_time);
+            //first move is from book always
+            int r = rand() % NO_1ST_MOVES;
+            next_move = FIRST_MOVES[r];
+//            next_move = pmc_engine.runSim(TOTAL_MAX_TIME - used_time);
+//            next_move = pmc_engine.d3Sim(TOTAL_MAX_TIME - used_time);
             pmc_engine.makePermanentMove(next_move);
 
             used_time += wtimer.get_elapsed();
@@ -44,8 +48,8 @@ int main() {
         } else {
             //we receive the last move played
             last_move = atoi(in_command.c_str());
+            next_move = NONE;
 
-            //TODO
             //last move may be color flip
             if(last_move == -1) {
                 pmc_engine.makePermanentMove(FLIP_MOVE);
@@ -53,9 +57,17 @@ int main() {
                 pmc_engine.makePermanentMove(last_move);
             }
 
-            next_move = pmc_engine.runSim(TOTAL_MAX_TIME - used_time);
-            pmc_engine.makePermanentMove(next_move);
-            used_time += wtimer.get_elapsed();
+            if(pmc_engine.board.next_move == 2) {
+                //test book for second move
+                next_move = SECOND_MOVES[last_move];
+            }
+
+            if(next_move != FLIP_MOVE) {
+                next_move = pmc_engine.runSim(TOTAL_MAX_TIME - used_time);
+    //            next_move = pmc_engine.d3Sim(TOTAL_MAX_TIME - used_time);
+                pmc_engine.makePermanentMove(next_move);
+                used_time += wtimer.get_elapsed();
+            }
 
             if(next_move == FLIP_MOVE) {
                 cout << "-1" << endl;

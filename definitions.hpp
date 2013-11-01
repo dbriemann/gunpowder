@@ -293,6 +293,120 @@ U8 FIELD_EDGE_RELATION[LAST_FIELD+1] = {
     EDGE_MASK3 | EDGE_MASK2         //106
 };
 
+#define NO_1ST_MOVES 10
+U8 FIRST_MOVES[NO_1ST_MOVES] = {11,15,18,24,63,71,74,81,95,96};
+
+#define NO_2ND_MOVES 107
+U8 SECOND_MOVES[NO_2ND_MOVES] = {
+    NONE,                           //0
+    FLIP_MOVE,        //1
+    NONE,                     //2
+    FLIP_MOVE,                           //3
+    NONE,                     //4
+    NONE,                     //5
+    FLIP_MOVE,                           //6
+    FLIP_MOVE,                           //7
+    FLIP_MOVE,                           //8
+    NONE,                     //9
+    NONE,                     //10
+    NONE,                           //11
+    FLIP_MOVE,                           //12
+    FLIP_MOVE,                           //13
+    FLIP_MOVE,                           //14
+    NONE,                           //15
+    NONE,                     //16
+    NONE,                     //17
+    NONE,                           //18
+    FLIP_MOVE,                           //19
+    FLIP_MOVE,                           //20
+    FLIP_MOVE,                           //21
+    FLIP_MOVE,                           //22
+    FLIP_MOVE,                           //23
+    NONE,                           //24
+    NONE,                     //25
+    NONE,                     //26
+    FLIP_MOVE,                           //27
+    FLIP_MOVE,                           //28
+    FLIP_MOVE,                           //29
+    FLIP_MOVE,                           //30
+    NONE,                           //31
+    FLIP_MOVE,                           //32
+    FLIP_MOVE,                           //33
+    FLIP_MOVE,                           //34
+    FLIP_MOVE,                           //35
+    NONE,                     //36
+    FLIP_MOVE,        //37
+    FLIP_MOVE,                           //38
+    FLIP_MOVE,                           //39
+    FLIP_MOVE,                           //40
+    NONE,                           //41
+    NONE,                           //42
+    NONE,                           //43 //CENTER
+    NONE,                           //44
+    FLIP_MOVE,                           //45
+    FLIP_MOVE,                           //46
+    FLIP_MOVE,                           //47
+    FLIP_MOVE,                           //48
+    FLIP_MOVE,        //49
+    NONE,                     //50
+    FLIP_MOVE,                           //51
+    FLIP_MOVE,                           //52
+    FLIP_MOVE,                           //53
+    FLIP_MOVE,                           //54
+    NONE,                           //55
+    NONE,                           //56
+    FLIP_MOVE,                           //57
+    FLIP_MOVE,                           //58
+    FLIP_MOVE,                           //59
+    FLIP_MOVE,                           //60
+    NONE,                     //61
+    NONE,                     //62
+    NONE,                           //63
+    FLIP_MOVE,                           //64
+    FLIP_MOVE,                           //65
+    FLIP_MOVE,                           //66
+    FLIP_MOVE,                           //67
+    FLIP_MOVE,                           //68
+    FLIP_MOVE,                           //69
+    FLIP_MOVE,                           //70
+    NONE,                           //71
+    NONE,                     //72
+    NONE,                     //73
+    NONE,                           //74
+    FLIP_MOVE,                           //75
+    FLIP_MOVE,                           //76
+    FLIP_MOVE,                           //77
+    FLIP_MOVE,                           //78
+    FLIP_MOVE,                           //79
+    FLIP_MOVE,                           //80
+    NONE,                           //81
+    NONE,                     //82
+    NONE,                     //83
+    FLIP_MOVE,                           //84
+    FLIP_MOVE,                           //85
+    FLIP_MOVE,                           //86
+    FLIP_MOVE,                           //87
+    FLIP_MOVE,                           //88
+    FLIP_MOVE,                           //89
+    FLIP_MOVE,                           //90
+    NONE,                     //91
+    NONE,                     //92
+    FLIP_MOVE,                           //93
+    FLIP_MOVE,                           //94
+    NONE,                           //95
+    NONE,                           //96
+    FLIP_MOVE,                           //97
+    FLIP_MOVE,                           //98
+    NONE,                     //99
+    FLIP_MOVE,        //100
+    NONE,                     //101
+    NONE,                     //102
+    NONE,                     //103
+    NONE,                     //104
+    NONE,                     //105
+    FLIP_MOVE         //106
+};
+
 
 /*
  * little RNG
@@ -310,6 +424,26 @@ U32 fastrand() {
     return (g_seed>>16)&0x7FFF;
 }
 
+#define MAX_DIM LAST_FIELD
+#define TOTAL_DIM ((MAX_DIM+1)*(MAX_DIM+1)*(MAX_DIM+1))
+
+inline
+U32 linearIndexFromCoordinate(U32 d1, U32 d2, U32 d3){
+    U32 a = 1;
+    U32 b = MAX_DIM + 1;
+    U32 c = (MAX_DIM + 1) * (MAX_DIM + 1);
+    return a*d1 + b*d2 + c*d3;
+}
+
+//inline
+//U32 coordinateFromLinearIndex(U32 idx, max_x, max_y){
+//    x =  idx % (max_x+1)
+//    idx /= (max_x+1)
+//    y = idx % (max_y+1)
+//    idx /= (max_y+1)
+//    z = idx
+//    return (x,y,z)
+//}
 
 
 
