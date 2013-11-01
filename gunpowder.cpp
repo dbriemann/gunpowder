@@ -2,8 +2,15 @@
 #include <iostream>
 using namespace std;
 
+//the following includes will be replaced by the actual code
+//with the help of a script, because tournament rules allow
+//only one single file as upload.
+//---REPLACE-BEGIN---
+#include "definitions.hpp"
+#include "Timer.hpp"
 #include "FastBoard.hpp"
 #include "PlainMC.hpp"
+//---REPLACE-END---
 
 
 int main() {
